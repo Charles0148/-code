@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無限流 · 副本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1417; --panel:#151C20; --panel2:#1B2429; --line:#2A353B;
+    --ink:#D2CABA; --ink-dim:#8A9097;
+    --brass:#C7A24B; --brass-dim:#6f5e30;
+    --jade:#8BA894; --rust:#A6463A;
+    --serif:"Noto Serif TC",serif; --sans:"Noto Sans TC",sans-serif;
+    --mono:"JetBrains Mono","Noto Sans TC",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #19232800 40%, #0b1013 100%),var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100%; display:flex; justify-content:center;
+    padding:30px 18px 60px; line-height:1.7; -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:50;
+    background:repeating-linear-gradient(to bottom,#ffffff05 0 1px,transparent 1px 3px);
+    mix-blend-mode:overlay; opacity:.5;
+  }
+  .stage{width:100%; max-width:680px;}
+
+  .sys-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--mono); font-size:12px; letter-spacing:.12em;
+    color:var(--brass); text-transform:uppercase; margin-bottom:16px;
+  }
+  .sys-top .cursor{ animation:blink 1.1s steps(1) infinite; }
+  .sys-top .points{ color:var(--ink-dim); }
+  .sys-top .points b{ color:var(--brass); font-weight:600; }
+  @keyframes blink{50%{opacity:0;}}
+
+  h2.screen-title{
+    font-family:var(--serif); font-weight:500; font-size:22px;
+    letter-spacing:.05em; margin:0 0 6px;
+  }
+  .lede{ color:var(--ink-dim); font-size:14px; margin:0 0 22px; }
+
+  .objective{
+    border:1px solid var(--line); border-left:3px solid var(--brass);
+    background:linear-gradient(90deg,#1b242940,#15191c00);
+    padding:11px 14px; margin-bottom:22px;
+    display:flex; justify-content:space-between; align-items:center; gap:14px;
+    font-family:var(--mono); font-size:13px;
+  }
+  .objective .obj-text .tag{
+    color:var(--brass); font-size:11px; letter-spacing:.1em;
+    border:1px solid var(--brass-dim); border-radius:2px; padding:1px 6px; margin-left:8px;
+  }
+  .objective .turn{ color:var(--ink-dim); white-space:nowrap; }
+  .objective .turn b{ color:var(--ink); font-weight:600; }
+
+  .scene{
+    font-family:var(--serif); font-size:19px; line-height:1.95;
+    color:var(--ink); white-space:pre-wrap; min-height:80px;
+    padding-left:16px; border-left:1px solid var(--line);
+  }
+  .scene.reveal{ animation:fade .55s ease both; }
+  @keyframes fade{from{opacity:0; transform:translateY(4px);}to{opacity:1;}}
+
+  .ending{ font-family:var(--serif); font-size:15px; letter-spacing:.18em; margin-bottom:10px; }
+  .ending.cleared{ color:var(--brass); } .ending.dead{ color:var(--rust); }
+
+  .notice{ font-family:var(--mono); font-size:13px; margin-top:18px; line-height:1.9; }
+  .notice .gain{ color:var(--jade); } .notice .loss{ color:var(--rust); }
+  .notice .roll{ color:var(--ink-dim); }
+  .notice .roll b.ok{ color:var(--jade); } .notice .roll b.no{ color:var(--rust); }
+
+  .actions{ margin-top:28px; display:flex; flex-direction:column; gap:10px; }
+  .act{
+    appearance:none; cursor:pointer; text-align:left; width:100%;
+    background:var(--panel); border:1px solid var(--line); border-radius:3px;
+    color:var(--ink); font-family:var(--sans); font-size:16px;
+    padding:14px 16px 14px 14px; display:flex; align-items:center; gap:12px;
+    transition:background .15s,border-color .15s,transform .15s;
+  }
+  .act .mark{ color:var(--ink-dim); font-family:var(--mono); font-size:13px; transition:color .15s,transform .15s; }
+  .act:hover{ background:var(--panel2); border-color:var(--brass-dim); }
+  .act:hover .mark{ color:var(--brass); transform:translateX(2px); }
+  .act:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+  .act:disabled{ opacity:.4; cursor:not-allowed; }
+  .act .pill{
+    margin-left:auto; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
+    border:1px solid var(--brass-dim); border-radius:2px; padding:2px 6px; white-space:nowrap; color:var(--brass);
+  }
+  .act .pill.check{ color:var(--ink-dim); border-color:var(--line); }
+  .act .pill.cost{ color:var(--rust); border-color:#5a2e29; }
+  .act .pill.warn{ color:var(--brass); border-color:var(--brass-dim); }
+  .act .pill.high{ color:var(--rust); border-color:#5a2e29; }
+  .act.primary{ justify-content:center; color:var(--brass); border-color:var(--brass-dim); }
+  .act.primary .mark{ color:var(--brass); }
+
+  /* ── 開發者面板 ── */
+  .dev-fab{
+    position:fixed; bottom:18px; right:18px; z-index:900;
+    appearance:none; cursor:pointer; background:#151C20; border:1px solid #2A353B;
+    color:var(--brass); font-family:var(--mono); font-size:11px; letter-spacing:.1em;
+    padding:6px 11px; border-radius:3px; transition:border-color .15s;
+  }
+  .dev-fab:hover{ border-color:var(--brass); }
+  .dev-overlay{
+    position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.88);
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:20px 14px 40px; overflow-y:auto;
+  }
+  .dev-panel{
+    width:100%; max-width:900px; background:#111820;
+    border:1px solid #2A353B; border-radius:4px; flex-shrink:0;
+  }
+  .dev-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:13px 18px; border-bottom:1px solid #2A353B;
+    font-family:var(--mono); font-size:13px; color:var(--brass); letter-spacing:.08em;
+  }
+  .dev-tabs{
+    display:flex; border-bottom:1px solid #2A353B; overflow-x:auto;
+  }
+  .dev-tab{
+    flex-shrink:0; padding:10px 16px; cursor:pointer; font-family:var(--mono); font-size:11px;
+    color:var(--ink-dim); border:none; background:transparent; border-bottom:2px solid transparent;
+    letter-spacing:.1em; text-transform:uppercase; transition:color .15s;
+  }
+  .dev-tab.active{ color:var(--brass); border-bottom-color:var(--brass); }
+  .dev-tab:hover:not(.active){ color:var(--ink); }
+  .dev-body{ padding:18px; }
+  .dev-section{ margin-bottom:24px; }
+  .dev-section-title{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--brass);
+    text-transform:uppercase; margin:0 0 10px;
+  }
+  .dev-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .dev-table th{
+    text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+    color:var(--ink-dim); padding:5px 7px; border-bottom:1px solid #2A353B; text-transform:uppercase;
+  }
+  .dev-table td{ padding:6px 7px; border-bottom:1px dashed #1e2a30; vertical-align:middle; }
+  .dev-input{
+    background:#0e1417; border:1px solid #2A353B; border-radius:2px;
+    color:var(--ink); font-family:var(--sans); font-size:12px; padding:3px 6px; width:100%;
+  }
+  .dev-input:focus{ outline:1px solid var(--brass); border-color:var(--brass); }
+  .dev-select{
+    background:#0e1417; border:1px solid #2A353B; border-radius:2px;
+    color:var(--ink); font-family:var(--mono); font-size:11px; padding:3px 5px;
+  }
+  .dev-num{ width:62px; }
+  .dev-xs{ width:50px; }
+  .dev-btn{
+    appearance:none; cursor:pointer; border-radius:2px; font-family:var(--mono);
+    font-size:11px; padding:3px 8px; border:1px solid; background:transparent; white-space:nowrap;
+  }
+  .dev-btn.add{ color:var(--jade); border-color:#4a6b54; }
+  .dev-btn.del{ color:var(--rust); border-color:#5a2e29; }
+  .dev-btn.copy{ color:var(--brass); border-color:var(--brass-dim); padding:6px 14px; font-size:12px; }
+  .dev-btn.close{ color:var(--ink-dim); border-color:#2A353B; }
+  .prob-wrap{ overflow-x:auto; }
+  .prob-table{ border-collapse:collapse; font-family:var(--mono); font-size:12px; white-space:nowrap; }
+  .prob-table th,.prob-table td{ padding:5px 9px; text-align:center; border-bottom:1px dashed #1e2a30; }
+  .prob-table th{ color:var(--ink-dim); border-bottom:1px solid #2A353B; }
+  .prob-cell{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .prob-bar{ width:36px; height:5px; background:#1B2429; border-radius:2px; }
+  .prob-fill{ height:100%; border-radius:2px; }
+  .dev-export-area{
+    width:100%; height:140px; background:#0e1417; border:1px solid #2A353B;
+    color:var(--ink-dim); font-family:var(--mono); font-size:11px;
+    padding:10px; border-radius:2px; resize:vertical; display:block; margin-bottom:6px;
+  }
+  .dev-info-row{
+    display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;
+    font-family:var(--mono); font-size:12px; color:var(--ink-dim);
+  }
+
+  .shop-btn{
+    appearance:none; cursor:pointer; border-radius:2px; font-family:var(--mono);
+    font-size:12px; padding:4px 10px; border:1px solid; background:transparent;
+    transition:opacity .15s; white-space:nowrap;
+  }
+  .shop-btn:disabled{ opacity:.35; cursor:not-allowed; }
+  .shop-btn.sell{ color:var(--brass); border-color:var(--brass-dim); }
+  .shop-btn.buy{ color:var(--jade); border-color:#4a6b54; }
+  .shop-btn.unlock{ color:#9a7fd0; border-color:#5a4a80; }
+  .item.owned .name{ opacity:.55; }
+  .item .tag-owned{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); }
+
+  /* ── 道具獲得 Popup ── */
+  .loot-overlay{
+    position:fixed; inset:0; z-index:400; background:rgba(0,0,0,.78);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .loot-popup{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:22px; width:100%; max-width:460px; max-height:82vh; overflow-y:auto;
+  }
+  .loot-popup-ttl{
+    font-family:var(--mono); font-size:11px; letter-spacing:.16em; color:var(--brass);
+    text-transform:uppercase; margin-bottom:16px;
+  }
+  .loot-cards{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .loot-card{
+    display:flex; align-items:center; gap:14px;
+    border:1px solid var(--line); border-radius:3px; padding:12px 14px;
+    background:var(--panel2);
+  }
+  .loot-icon{ font-size:30px; flex-shrink:0; width:42px; text-align:center; }
+  .loot-info{ flex:1; min-width:0; }
+  .loot-name{ font-family:var(--serif); font-size:16px; margin-bottom:3px; color:var(--ink); }
+  .loot-eff{ font-size:12px; color:var(--ink-dim); margin-bottom:6px; }
+  .loot-tags{ display:flex; gap:5px; flex-wrap:wrap; }
+  .loot-tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+    border:1px solid; border-radius:2px; padding:1px 6px;
+  }
+  .loot-tag.slot{ color:var(--brass); border-color:var(--brass-dim); }
+  .loot-tag.bonus{ color:var(--jade); border-color:#4a6b54; }
+  .loot-tag.auto{ color:var(--jade); border-color:#4a6b54; }
+  .loot-tag.carry{ color:#9a7fd0; border-color:#5a4a80; }
+  .loot-equip-btn{
+    flex-shrink:0; appearance:none; cursor:pointer; border-radius:2px;
+    font-family:var(--mono); font-size:11px; padding:5px 10px;
+    border:1px solid #4a6b54; color:var(--jade); background:transparent;
+  }
+  .loot-equip-btn:disabled{ opacity:.35; cursor:default; }
+
+  /* ── 角色裝備介面 ── */
+  .equip-wrap{ display:flex; flex-direction:column; gap:20px; }
+  .char-layout{
+    display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
+  }
+  .char-col{ display:flex; flex-direction:column; gap:8px; }
+  .char-figure{ flex-shrink:0; }
+  .equip-slot{
+    width:110px; border:1px dashed #2A353B; border-radius:3px; padding:8px 10px;
+    cursor:pointer; min-height:64px; display:flex; flex-direction:column;
+    justify-content:center; transition:border-color .15s, background .15s;
+  }
+  .equip-slot.filled{ border-style:solid; border-color:#3a4a50; }
+  .equip-slot:hover{ border-color:var(--brass-dim); background:var(--panel2); }
+  .equip-slot .sl-label{
+    font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:4px;
+  }
+  .equip-slot.filled .sl-label{ color:var(--brass); }
+  .equip-slot .sl-icon{ font-size:20px; margin-bottom:2px; }
+  .equip-slot .sl-name{ font-size:12px; color:var(--ink); line-height:1.3; }
+  .equip-slot .sl-bonus{ font-family:var(--mono); font-size:11px; color:var(--jade); margin-top:2px; }
+  .equip-slot .sl-empty{ font-size:12px; color:#3a4a50; font-style:italic; }
+  .equip-bag-title{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--ink-dim);
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .equip-bag-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .equip-bag-item{
+    display:flex; align-items:center; gap:8px;
+    border:1px solid var(--line); border-radius:3px; padding:8px 12px;
+    cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .equip-bag-item:hover{ border-color:var(--brass-dim); background:var(--panel2); }
+  .equip-bag-item .bi-icon{ font-size:18px; }
+  .equip-bag-item .bi-name{ font-size:13px; color:var(--ink); }
+  .equip-bag-item .bi-slot{ font-family:var(--mono); font-size:10px; color:var(--ink-dim); }
+  .equip-bag-empty{ font-family:var(--serif); font-size:14px; color:var(--ink-dim); }
+
+  .toolbar{ margin-top:24px; }
+  .bag-btn{
+    appearance:none; cursor:pointer; background:transparent;
+    border:1px solid var(--line); border-radius:3px; color:var(--ink-dim);
+    font-family:var(--mono); font-size:12px; letter-spacing:.06em; padding:8px 12px;
+    transition:color .15s,border-color .15s;
+  }
+  .bag-btn:hover{ color:var(--brass); border-color:var(--brass-dim); }
+  .bag-btn:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+
+  .panel{ border:1px solid var(--line); border-radius:3px; background:var(--panel); padding:16px 18px; margin-bottom:18px; }
+  .panel h3{ margin:0 0 12px; font-family:var(--mono); font-size:12px; letter-spacing:.14em; color:var(--brass); text-transform:uppercase; font-weight:600; }
+  .panel .empty{ color:var(--ink-dim); font-family:var(--serif); font-size:15px; }
+  .item{ display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px dashed var(--line); }
+  .item:first-of-type{ border-top:none; }
+  .item .name{ color:var(--ink); } .item .name .carry{ color:var(--jade); font-size:11px; font-family:var(--mono); margin-left:6px; }
+  .item .eff{ color:var(--ink-dim); font-size:13px; }
+  .item .val{ color:var(--brass); font-family:var(--mono); font-size:13px; white-space:nowrap; }
+
+  .footnote{ margin-top:36px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-dim); font-size:12.5px; line-height:1.8; }
+  .footnote b{ color:var(--ink); font-weight:500; }
+
+  /* ── 稀有度色票 ── */
+  :root{
+    --rar-white:#c8c8c8; --rar-white-bg:#1e2223;
+    --rar-green:#5fa86e; --rar-green-bg:#16231a;
+    --rar-blue:#5b9bd5;  --rar-blue-bg:#162030;
+    --rar-yellow:#c7a24b;--rar-yellow-bg:#221c10;
+    --rar-red:#c0473b;   --rar-red-bg:#231210;
+    --rar-gold:#e8b84a;  --rar-gold-bg:#261e08;
+    --rar-rainbow:#c97fe0;--rar-rainbow-bg:#1c1228;
+  }
+  .rar-badge{
+    font-family:var(--mono); font-size:10px; letter-spacing:.06em;
+    border:1px solid; border-radius:2px; padding:1px 6px; white-space:nowrap;
+    font-weight:600; text-transform:uppercase;
+  }
+  .rar-white { color:var(--rar-white);  border-color:#3a3a3a;  background:var(--rar-white-bg);  }
+  .rar-green  { color:var(--rar-green);  border-color:#2d5038;  background:var(--rar-green-bg);  }
+  .rar-blue  { color:var(--rar-blue);   border-color:#2a4466;  background:var(--rar-blue-bg);   }
+  .rar-yellow{ color:var(--rar-yellow); border-color:#5a4220;  background:var(--rar-yellow-bg); }
+  .rar-red   { color:var(--rar-red);    border-color:#6a2820;  background:var(--rar-red-bg);    }
+  .rar-gold  {
+    color:var(--rar-gold); border-color:#8a6020; background:var(--rar-gold-bg);
+    box-shadow:0 0 6px #c7a24b44;
+  }
+  .rar-rainbow{
+    color:var(--rar-rainbow); border-color:#6a3a90; background:var(--rar-rainbow-bg);
+    box-shadow:0 0 6px #c97fe044;
+  }
+
+  /* ── 裝備介面（條列式）── */
+  .equip-page{ display:flex; flex-direction:column; min-height:0; }
+
+  /* 槽位概覽 */
+  .slot-summary{
+    display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;
+  }
+  .slot-chip{
+    display:flex; align-items:center; gap:5px;
+    border:1px solid var(--line); border-radius:3px; padding:5px 9px;
+    font-size:12px; cursor:pointer; transition:border-color .15s, background .15s;
+    min-width:90px;
+  }
+  .slot-chip.filled{ border-color:#3a4a50; }
+  .slot-chip.selected{ border-color:var(--brass); background:var(--panel2); }
+  .slot-chip .sc-label{ font-family:var(--mono); font-size:10px; color:var(--ink-dim); letter-spacing:.08em; margin-right:2px; }
+  .slot-chip .sc-name{ color:var(--ink); font-size:12px; }
+  .slot-chip .sc-empty{ color:#3a4a50; font-style:italic; font-size:11px; }
+
+  /* 道具列表 */
+  .item-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:80px; }
+  .item-card{
+    display:flex; align-items:center; gap:12px;
+    border:1px solid var(--line); border-radius:3px; padding:11px 14px;
+    cursor:pointer; background:var(--panel); transition:border-color .15s, background .15s;
+    position:relative;
+  }
+  .item-card:hover{ border-color:#3a4a50; background:var(--panel2); }
+  .item-card.selected{ border-color:var(--brass); background:var(--panel2); }
+  .item-card.equipped-mark{ border-left:3px solid var(--jade); }
+  .item-card .ic-icon{ font-size:26px; flex-shrink:0; width:34px; text-align:center; }
+  .item-card .ic-body{ flex:1; min-width:0; }
+  .item-card .ic-top{
+    display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap;
+  }
+  .item-card .ic-name{ font-family:var(--serif); font-size:16px; color:var(--ink); }
+  .item-card .ic-eff{ font-size:12px; color:var(--ink-dim); line-height:1.4; margin-bottom:5px; }
+  .item-card .ic-tags{ display:flex; gap:5px; flex-wrap:wrap; }
+  .item-card .ic-tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+    border:1px solid; border-radius:2px; padding:1px 6px;
+  }
+  .item-card .ic-tag.slot-t{ color:var(--brass); border-color:var(--brass-dim); }
+  .item-card .ic-tag.bonus-t{ color:var(--jade); border-color:#4a6b54; }
+  .item-card .ic-tag.carry-t{ color:#9a7fd0; border-color:#5a4a80; }
+  .item-card .ic-tag.eq-t{ color:var(--jade); border-color:#4a6b54; }
+  .item-card .ic-equip-indicator{
+    position:absolute; top:8px; right:10px;
+    font-family:var(--mono); font-size:10px; color:var(--jade);
+  }
+
+  /* 固定底部行動列 */
+  .equip-action-bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:200;
+    background:linear-gradient(to top, var(--bg) 70%, transparent 100%);
+    padding:12px 18px 18px; display:flex; justify-content:flex-end; gap:10px;
+    pointer-events:none;
+  }
+  .equip-action-bar button{ pointer-events:all; }
+  .equip-act-btn{
+    appearance:none; cursor:pointer; border-radius:3px;
+    font-family:var(--mono); font-size:13px; letter-spacing:.06em;
+    padding:11px 26px; border:1px solid; background:transparent;
+    transition:opacity .15s, background .15s;
+  }
+  .equip-act-btn:disabled{ opacity:.3; cursor:not-allowed; }
+  .equip-act-btn.unequip{ color:var(--rust); border-color:#6a2820; }
+  .equip-act-btn.unequip:not(:disabled):hover{ background:#231210; }
+  .equip-act-btn.equip{ color:var(--jade); border-color:#4a6b54; }
+  .equip-act-btn.equip:not(:disabled):hover{ background:#16231a; }
+
+  /* ── DEV 道具卡片（Tab 1）── */
+  .dev-item-card{
+    background:#0a1014; border:1px solid #2A353B; border-radius:4px;
+    padding:14px 16px; margin-bottom:10px;
+    transition:border-color .15s;
+  }
+  .dev-item-card:hover{ border-color:#3a4a52; }
+  .dev-ic-r1{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .dev-ic-icon{
+    width:40px; height:40px; text-align:center; font-size:22px; line-height:40px;
+    background:#151C20; border:1px solid #2A353B; border-radius:3px;
+    cursor:text; flex-shrink:0; outline:none;
+  }
+  .dev-ic-icon:focus{ border-color:var(--brass); }
+  .dev-ic-name{
+    flex:1; background:#0e1417; border:1px solid #2A353B; border-radius:2px;
+    color:var(--ink); font-family:var(--serif); font-size:14px; padding:6px 9px;
+    min-width:0;
+  }
+  .dev-ic-name:focus{ outline:1px solid var(--brass); border-color:var(--brass); }
+  .dev-ic-r2{ margin-bottom:8px; }
+  .dev-ic-eff{
+    width:100%; background:#0e1417; border:1px solid #2A353B; border-radius:2px;
+    color:var(--ink-dim); font-family:var(--sans); font-size:12px; padding:5px 9px;
+  }
+  .dev-ic-eff:focus{ outline:1px solid var(--brass); border-color:var(--brass); }
+  .dev-ic-r3{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  .dev-ic-field{ display:flex; flex-direction:column; gap:3px; }
+  .dev-ic-label{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-dim);
+  }
+  .dev-ic-r4{ border-top:1px dashed #1e2a30; padding-top:10px; }
+  .dev-ic-pool-title{
+    font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:7px;
+  }
+  .dev-ic-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .dev-scn-chip{
+    appearance:none; cursor:pointer; border-radius:3px; padding:5px 11px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.04em;
+    border:1px solid #2A353B; background:transparent; color:#3a4a52;
+    transition:color .15s, border-color .15s, background .15s;
+  }
+  .dev-scn-chip.on{ color:var(--jade); border-color:#4a6b54; background:#0d1f14; }
+  .dev-scn-chip:hover:not(.on){ color:var(--ink-dim); border-color:#3a4a52; }
+  .dev-scn-chip.on:hover{ background:#0a1a10; }
+
+  @media (prefers-reduced-motion: reduce){ .scene.reveal{ animation:none; } .sys-top .cursor{ animation:none; } }
+
+  /* ── 成就系統 ── */
+  .ach-popup-overlay{
+    position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.88);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .ach-popup{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:26px 24px; width:100%; max-width:400px; text-align:center;
+  }
+  .ach-popup-tag{
+    font-family:var(--mono); font-size:10px; letter-spacing:.2em;
+    color:var(--brass); text-transform:uppercase; margin-bottom:16px;
+  }
+  .ach-popup-icon{ font-size:44px; margin-bottom:10px; }
+  .ach-popup-name{ font-family:var(--serif); font-size:20px; margin-bottom:8px; }
+  .ach-popup-hint{ font-size:13px; color:var(--ink-dim); margin-bottom:20px; line-height:1.7; }
+
+  .ach-group-label{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    color:var(--brass); text-transform:uppercase; margin:20px 0 8px;
+    padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .ach-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .ach-card{
+    display:flex; align-items:center; gap:14px;
+    border:1px solid var(--line); border-radius:3px; padding:12px 14px;
+    background:var(--panel); transition:border-color .15s;
+  }
+  .ach-card.unlocked{ border-color:#3a4a50; }
+  .ach-card.locked{ opacity:.4; }
+  .ach-icon{ font-size:24px; width:30px; text-align:center; flex-shrink:0; }
+  .ach-body{ flex:1; min-width:0; }
+  .ach-name{ font-family:var(--serif); font-size:15px; color:var(--ink); margin-bottom:3px; }
+  .ach-hint{ font-size:12px; color:var(--ink-dim); line-height:1.5; }
+  .ach-tags{ display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; }
+  .ach-tag{
+    font-family:var(--mono); font-size:10px; letter-spacing:.04em;
+    border:1px solid; border-radius:2px; padding:1px 6px;
+  }
+  .ach-tag.type-t{ color:var(--ink-dim); border-color:var(--line); }
+  .ach-stat{
+    font-family:var(--mono); font-size:12px; color:var(--ink-dim);
+    margin-bottom:18px;
+  }
+  .ach-stat b{ color:var(--brass); }
+
+  /* ── 記事本 ── */
+  .notepad-toolbar{
+    display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;
+  }
+  .notepad-btn{
+    appearance:none; cursor:pointer; border-radius:2px;
+    font-family:var(--mono); font-size:11px; padding:4px 10px;
+    border:1px solid #2A353B; background:#0e1417; color:var(--ink-dim);
+    transition:border-color .15s, color .15s;
+  }
+  .notepad-btn:hover{ border-color:var(--brass-dim); color:var(--brass); }
+  .notepad-btn.mark-y{ border-color:#5a4220; color:#c7a24b; }
+  .notepad-btn.mark-g{ border-color:#2d5038; color:#5fa86e; }
+  .notepad-btn.mark-r{ border-color:#6a2820; color:#c0473b; }
+  .notepad-btn.bold-b { border-color:#2a4466; color:#5b9bd5; font-weight:700; }
+  .notepad-editor{
+    width:100%; min-height:340px; background:#0a1014;
+    border:1px solid #2A353B; border-radius:3px;
+    color:var(--ink); font-family:var(--sans); font-size:14px;
+    padding:14px 16px; line-height:1.85; outline:none;
+    white-space:pre-wrap; word-break:break-all;
+  }
+  .notepad-editor:focus{ border-color:#3a4a52; }
+  .notepad-footer{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:10px; gap:10px; flex-wrap:wrap;
+  }
+  .notepad-saved{
+    font-family:var(--mono); font-size:10px; color:var(--ink-dim);
+    letter-spacing:.06em;
+  }
+</style>
+</head>
+<body>
+<button class="dev-fab" id="dev-fab-btn">DEV</button>
+<div class="stage">
+  <div class="sys-top">
+    <span>記憶狹間<span class="cursor">▌</span></span>
+    <span class="points">點數 <b id="points">0</b></span>
+  </div>
+  <div id="view"></div>
+</div>
+
+<!-- 劇本資料：每個副本一支 js，新增劇本只需加新檔案 + 一行 script -->
+<script>const SCENARIOS = {};</script>
+<script src="scenarios/hospital_01.js"></script>
+<script src="scenarios/store_01.js"></script>
+<script src="scenarios/wreck_01.js"></script>
+<script src="scenarios/metro_01.js"></script>
+<script src="scenarios/aquarium_01.js"></script>
+<script src="scenarios/bakery_01.js"></script>
+
+<script>
+/* ===========================================================================
+   無限流 · 副本　（純前端、無執行時 AI 版本）
+   ---------------------------------------------------------------------------
+   設計原則：
+   - 內容（劇本、物品）= 事先準備好的資料池。正式版可用 AI「離線」一批批生成。
+   - 機制（抽選、排除、掉落、判定、貨幣、生死）= 全部由下面的 JS 決定。
+   - 遊戲執行時完全不呼叫任何 AI / API → 可直接當靜態網頁丟上去分享。
+   ===========================================================================*/
+
+const TIER2_COST = 50;          // 進入 Tier 2 需要的點數
+const CARRY_ESCAPE_CHANCE = 0.10; // 失敗時，carry 道具有 10% 機率保住
+
+// --- 商店裝備（以 id 為鍵）。買了加進永久背包，check/bonus 在判定時生效 -------
+const SHOP_ITEMS = {
+  medkit:     { name:"急救包",       effect:"【裝備】敏捷 +2，危急時穩定身體狀態",     price:60,  check:"敏捷", bonus:2, slot:"body",   icon:"🩺", rarity:"green" },
+  grimoire:   { name:"術法殘卷",     effect:"【裝備】膽識 +3，閱讀過的人都有點不一樣", price:90,  check:"膽識", bonus:3, slot:"body",   icon:"📜", rarity:"blue"  },
+  lockpick:   { name:"開鎖工具組",   effect:"【裝備】搜查 +2，沒有開不了的鎖",         price:60,  check:"搜查", bonus:2, slot:"acc2",   icon:"🔓", rarity:"green" },
+  irongloves: { name:"重型手套",     effect:"【裝備】蠻力 +3，打穿任何障礙",           price:90,  check:"蠻力", bonus:3, slot:"weapon", icon:"🥊", rarity:"blue"  },
+  notebook:   { name:"調查員筆記本", effect:"【裝備】搜查 +1，記錄一切細節",           price:30,  check:"搜查", bonus:1, slot:"acc1",   icon:"📓", rarity:"white" },
+};
+
+// --- 成就池（以 id 為鍵）。每個劇本的成就在此統一定義 ----------------------
+// TODO: 成就累積到一定數量後解鎖「寶物庫」系統
+const ACHIEVEMENTS = {
+  aquarium_perfect_clear: {
+    name:     "[隱藏成就] 過於完美的通關",
+    hint:     "超過100分!! 真的假的~",
+    icon:     "🌊",
+    rarity:   "red",
+    scenario: "aquarium",
+    type:     "collect",   // collect / title / points / unlock
+    visible:  false,       // false = 未解鎖時顯示「???」
+    reward:   null,        // { points:N } / { title:"稱號" } / { unlockScenario:"id" }
+  },
+};
+
+// --- 物品池（以 id 為鍵）。slot=裝備槽, icon=顯示圖示 ----------------------
+const ITEMS = {
+  flashlight:{ name:"手電筒",       effect:"照穿黑暗，搜查 +2",            value:30,  tier:1, carry:false, drop:0.70, check:"搜查", bonus:2, slot:"weapon", icon:"🔦", rarity:"green"  },
+  scalpel:   { name:"生鏽手術刀",   effect:"勉強能割劈，蠻力 +2",          value:20,  tier:1, carry:false, drop:0.40, check:"蠻力", bonus:2, slot:"weapon", icon:"🔪", rarity:"green"  },
+  candle:    { name:"半截蠟燭",     effect:"微光，搜查 +1",                value:10,  tier:1, carry:false, drop:0.70, check:"搜查", bonus:1, slot:"acc1",   icon:"🕯️", rarity:"white"  },
+  key:       { name:"護理長的鑰匙", effect:"也許能開某道門",               value:40,  tier:1, carry:false, drop:0.50, check:null,   bonus:0, slot:"acc2",   icon:"🗝️", rarity:"green"  },
+  amulet:    { name:"褪色護身符",   effect:"【可帶出】面對超自然，膽識 +3", value:80,  tier:1, carry:true,  drop:0.10, check:"膽識", bonus:3, slot:"amulet", icon:"🧿", rarity:"yellow" },
+  diveknife: { name:"潛水刀",       effect:"水下破壞，蠻力 +3",            value:35,  tier:2, carry:false, drop:0.50, check:"蠻力", bonus:3, slot:"weapon", icon:"🗡️", rarity:"blue"   },
+  compass:   { name:"船長的羅盤",   effect:"【可帶出】脫困時，敏捷 +2",    value:120, tier:2, carry:true,  drop:0.03, check:"敏捷", bonus:2, slot:"acc1",   icon:"🧭", rarity:"yellow" },
+  // ── aquarium 專屬道具（finalBonus 用於最終存活判定，不進裝備系統）──
+  rusty_fish_knife: { name:"生鏽的殺魚刀",   effect:"最終存活判定 +20%", value:40,  tier:1, carry:false, drop:0.30, check:null, bonus:0, slot:null, icon:"🔪", rarity:"blue",   finalBonus:20 },
+  eye_hook:         { name:"勾著眼珠的魚鉤", effect:"最終存活判定 +10%", value:25,  tier:1, carry:false, drop:0.35, check:null, bonus:0, slot:null, icon:"🪝", rarity:"green",  finalBonus:10 },
+  humanface_fish:   { name:"長著人臉的魚",   effect:"最終存活判定 +50%", value:150, tier:1, carry:true,  drop:0.001,check:null, bonus:0, slot:null, icon:"🐟", rarity:"yellow", finalBonus:50 },
+  // ── bakery 專屬道具（grant 授予，drop:0 不進隨機掉落池）──
+  baguette_bat: { name:"可以打棒球的法國麵包", effect:"夏未留下的、凝成球棒的記憶。蘊含『回憶的力量』，在某些需要『想起什麼』的副本，或許能跨越時空幫上一把。", value:60,  tier:1, carry:true,  drop:0, check:"蠻力", bonus:3, slot:"weapon", icon:"🥖", rarity:"blue",  memoryPower:true },
+  frag_1:       { name:"記憶碎片-1", effect:"一張照片：瘦小的背影把法國麵包扛在肩上，像蓄勢待發的打者。",                                                           value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"white", quest:true },
+  frag_2:       { name:"記憶碎片-2", effect:"二樓皮箱裡的舊日記：生日蛋糕、紅茶與法國麵包、開麵包店的夢、那頓沒赴成的晚餐。",                                       value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"white", quest:true },
+  frag_3:       { name:"記憶碎片-3", effect:"事故那天的全部：口袋裡的小盒子、過馬路要看車、最後那句『我還沒答應你耶』。最痛的一塊。",                               value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"green", quest:true },
+  old_baseball: { name:"舊棒球",     effect:"皮箱裡悄悄多出的棒球，握著就發燙。隱藏結局的鑰匙之一。",                                                               value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"⚾", rarity:"white", quest:true },
+  shop_intact:  { name:"完好的麵包店", effect:"（內部標記：這片記憶的場景沒有被破壞）",                                                                             value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🏠", rarity:"white", quest:true, internal:true },
+};
+
+// --- 裝備槽定義 ---------------------------------------------------------------
+const SLOTS = {
+  head:   { label:"頭部",   hint:"頭盔・頭飾" },
+  body:   { label:"身體",   hint:"護甲・外套" },
+  feet:   { label:"腳部",   hint:"靴子・護腳" },
+  weapon: { label:"武器",   hint:"主要武器或工具" },
+  amulet: { label:"護身符", hint:"神祕力量加護" },
+  acc1:   { label:"飾品①", hint:"附加效果飾品" },
+  acc2:   { label:"飾品②", hint:"附加效果飾品" },
+};
+
+// 劇本資料已移至 scenarios/ 資料夾，由上方 <script src> 載入
+
+// --- 狀態（程式管理；本場關閉視窗前都在記憶體裡）-----------------------------
+let currency, inventory, runLoot, seen, unlockedScenarios, screen;
+let curScn, curScnId, curNodeId, turn, pendingLoot, pendingCheck, pendingReward, ending;
+let unlockedAchievements;
+let pendingAchievements = []; // 本次要顯示 popup 的成就佇列
+
+const SAVE_KEY = "mugen_save_v2";
+
+function defaultUnlocked(){
+  return new Set(Object.keys(SCENARIOS).filter(id => !SCENARIOS[id].locked));
+}
+
+let equipped = { head:null, body:null, feet:null, weapon:null, amulet:null, acc1:null, acc2:null };
+let pendingLootItems = [];
+let selectedEquipItem = null;
+
+const RARITY_META = {
+  white:  { label:"普通", cls:"rar-white"   },
+  green:  { label:"稀有", cls:"rar-green"   },
+  blue:   { label:"精良", cls:"rar-blue"    },
+  yellow: { label:"史詩", cls:"rar-yellow"  },
+  red:    { label:"傳說", cls:"rar-red"     },
+  gold:   { label:"神器", cls:"rar-gold"    },
+  rainbow:{ label:"彩虹", cls:"rar-rainbow" },
+};
+function rarBadge(rarity){
+  const m = RARITY_META[rarity] || RARITY_META.white;
+  return `<span class="rar-badge ${m.cls}">${m.label}</span>`;
+}
+function rarNameClass(rarity){
+  const m = RARITY_META[rarity];
+  return m ? `style="color:var(--rar-${rarity})"` : "";
+}
+
+function defaultEquipped(){ return { head:null, body:null, feet:null, weapon:null, amulet:null, acc1:null, acc2:null }; }
+
+function saveState(){
+  try {
+    const equippedIdx = {};
+    for(const slot in equipped) equippedIdx[slot] = equipped[slot] ? inventory.indexOf(equipped[slot]) : null;
+    const data = {
+      currency, inventory,
+      seen: { 1:[...seen[1]], 2:[...seen[2]] },
+      unlockedScenarios: [...unlockedScenarios],
+      equippedIdx,
+      unlockedAchievements: [...unlockedAchievements],
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e){}
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    currency  = data.currency  ?? 0;
+    inventory = data.inventory ?? [];
+    seen      = { 1:new Set(data.seen[1] ?? []), 2:new Set(data.seen[2] ?? []) };
+    unlockedScenarios = data.unlockedScenarios ? new Set(data.unlockedScenarios) : defaultUnlocked();
+    unlockedAchievements = data.unlockedAchievements ? new Set(data.unlockedAchievements) : new Set();
+    equipped = defaultEquipped();
+    if(data.equippedIdx){
+      for(const slot in data.equippedIdx){
+        const idx = data.equippedIdx[slot];
+        equipped[slot] = (idx != null && inventory[idx]) ? inventory[idx] : null;
+      }
+    }
+    return true;
+  } catch(e){ return false; }
+}
+
+function resetSave(){
+  if(!confirm("確定要清除所有存檔資料，重新開始嗎？")) return;
+  localStorage.removeItem(SAVE_KEY);
+  init();
+}
+
+function init(){
+  currency = 0; inventory = []; runLoot = [];
+  seen = {1:new Set(), 2:new Set()};
+  unlockedScenarios = defaultUnlocked();
+  unlockedAchievements = new Set();
+  equipped = defaultEquipped();
+  pendingLootItems = []; pendingAchievements = [];
+  loadState();
+  screen = "hub"; showingBag = false;
+  render();
+}
+let showingBag = false;
+
+// 判定加成：只計算已裝備到槽的物品
+function bonusFor(type){
+  let b = 0;
+  for(const slot in equipped){ const it = equipped[slot]; if(it && it.check === type) b += it.bonus; }
+  return b;
+}
+
+// 判斷背包是否有指定道具
+function hasItem(ref){
+  if(ITEMS[ref])      return inventory.some(it => it.name === ITEMS[ref].name);
+  if(SHOP_ITEMS[ref]) return inventory.some(it => it.name === SHOP_ITEMS[ref].name);
+  return inventory.some(it => it.name === ref);
+}
+
+// 裝備道具到指定槽（舊的退回背包但不刪除）
+function equipToSlot(item, slot){
+  equipped[slot] = item;
+  saveState(); render();
+}
+
+// 卸下槽位
+function unequipSlot(slot){
+  equipped[slot] = null;
+  saveState(); render();
+}
+
+// 掉落判定：照機率擲骰，新道具若有空槽則自動裝備
+function rollDrops(poolIds){
+  const newItems = [];
+  for(const id of poolIds){
+    const def = ITEMS[id];
+    if(Math.random() < def.drop){
+      const entry = {
+        name:def.name, effect:def.effect, value:def.value, carry:def.carry,
+        check:def.check, bonus:def.bonus, slot:def.slot, icon:def.icon || "📦",
+        rarity:def.rarity || "white", finalBonus:def.finalBonus || 0
+      };
+      const autoEquipped = entry.slot && !equipped[entry.slot];
+      if(autoEquipped) equipped[entry.slot] = entry;
+      inventory.push(entry); runLoot.push(entry);
+      newItems.push({ entry, autoEquipped });
+    }
+  }
+  pendingLootItems.push(...newItems);
+  return newItems.map(x => x.entry.name);
+}
+
+// 抽選 + 排除：只抽已解鎖的劇本；都玩過就重置
+function drawScenario(tier){
+  // DEV 強制指定關卡：用完即清，不影響後續抽選
+  if(devForcedScenario && SCENARIOS[devForcedScenario]){
+    const id = devForcedScenario;
+    devForcedScenario = null;
+    seen[SCENARIOS[id].tier].add(id);
+    return id;
+  }
+  const eligible = id => SCENARIOS[id].tier === tier && unlockedScenarios.has(id);
+  let pool = Object.keys(SCENARIOS).filter(id => eligible(id) && !seen[tier].has(id));
+  if(pool.length === 0){ seen[tier].clear(); pool = Object.keys(SCENARIOS).filter(eligible); }
+  if(pool.length === 0) pool = Object.keys(SCENARIOS).filter(id => SCENARIOS[id].tier === tier);
+  const id = pool[Math.floor(Math.random()*pool.length)];
+  seen[tier].add(id);
+  return id;
+}
+
+/* ========================= 副本擴充機制 =================================
+   每個特殊 winMode 在此登記鉤子，引擎在關鍵點呼叫，各劇本邏輯完全隔離。
+   新增特殊副本：在此區加一個 registerWinMode 呼叫，不動其他任何地方。
+   ======================================================================== */
+const WINMODE_HOOKS = {};
+function registerWinMode(name, hooks){ WINMODE_HOOKS[name] = hooks; }
+let runState = {};
+
+/* ── 成就解鎖 ── */
+function unlockAchievement(id){
+  if(unlockedAchievements.has(id)) return;
+  unlockedAchievements.add(id);
+  const ach = ACHIEVEMENTS[id];
+  // 兌現獎勵
+  if(ach.reward?.points){ currency += ach.reward.points; }
+  if(ach.reward?.unlockScenario){ unlockedScenarios.add(ach.reward.unlockScenario); }
+  pendingAchievements.push(id);
+  saveState();
+}
+
+/* ── 成就骰（overflow% = 每筆成就的觸發機率）── */
+function triggerAchievementRoll(overflow){
+  if(overflow <= 0) return;
+  Object.entries(ACHIEVEMENTS).forEach(([id, ach]) => {
+    if(ach.scenario !== curScnId) return;
+    if(unlockedAchievements.has(id)) return;
+    const roll = 1 + Math.floor(Math.random() * 100);
+    if(roll <= overflow) unlockAchievement(id);
+  });
+}
+
+/* ── 計算持有道具的 finalBonus 總和（同名道具只算一次）── */
+function computeFinalBonus(inv){
+  const counted = new Set();
+  let total = 0;
+  for(const it of inv){
+    if(it.finalBonus && !counted.has(it.name)){ counted.add(it.name); total += it.finalBonus; }
+  }
+  return total;
+}
+
+/* ── 每回合自動掉落（固定機率，已持有則跳過，不進裝備系統）── */
+function rollAutoDrops(poolIds){
+  for(const id of poolIds){
+    const def = ITEMS[id]; if(!def) continue;
+    if(inventory.some(it => it.name === def.name)) continue;
+    if(Math.random() >= def.drop) continue;
+    const entry = {
+      name:def.name, effect:def.effect, value:def.value, carry:def.carry,
+      check:def.check||null, bonus:def.bonus||0, slot:def.slot||null,
+      icon:def.icon||"📦", rarity:def.rarity||"white", finalBonus:def.finalBonus||0
+    };
+    inventory.push(entry); runLoot.push(entry);
+    pendingLootItems.push({ entry, autoEquipped:false });
+  }
+}
+
+/* ── accumulate winMode：勝利條件 enum（禁用 eval，一律在此新增）── */
+const WIN_CONDITIONS = {
+  "roll_lte_value": (roll, value) => roll <= value,   // roll ≤ value 則勝利
+};
+
+/* ── accumulate winMode：道具加成計算（以 bonusFrom 欄位名稱，同名只算一次）── */
+function computeAccumulatorBonus(inv, field){
+  const seen = new Set();
+  let total = 0;
+  for(const it of inv){
+    if(it[field] && !seen.has(it.name)){ seen.add(it.name); total += it[field]; }
+  }
+  return total;
+}
+
+/* ── 通用 accumulate winMode（讀取 scenario.accumulator 設定驅動邏輯）── */
+registerWinMode("accumulate", {
+  get skipSteer()     { return curScn?.accumulator?.skipSteer     ?? false; },
+  get skipTurnLimit() { return curScn?.accumulator?.skipTurnLimit ?? false; },
+
+  onEnter(state){
+    const cfg = curScn.accumulator;
+    state[cfg.stateKey] = cfg.initValue ?? 0;
+  },
+
+  onChoiceMade(choice, state, ctx){
+    const cfg = ctx.scenario.accumulator;
+    if(choice[cfg.choiceKey]) state[cfg.stateKey] += choice[cfg.choiceKey];
+    if(choice[cfg.finalChoiceKey]){
+      const bonus = computeAccumulatorBonus(ctx.inventory, cfg.bonusFrom);
+      const total = state[cfg.stateKey] + bonus;
+      const { min, max } = cfg.roll;
+      if(total >= max){
+        if(cfg.overflow?.achievementRoll) triggerAchievementRoll(total - max);
+        return { overrideNextId: choice.success };
+      }
+      const roll = min + Math.floor(Math.random() * (max - min + 1));
+      const win = WIN_CONDITIONS[cfg.winIf]?.(roll, total) ?? false;
+      return { overrideNextId: win ? choice.success : choice.fail };
+    }
+    return null;
+  },
+
+  onNodeEnter(nodeId, state, ctx){
+    if(ctx.scenario.nodes[nodeId]?.end) return;
+    if(ctx.scenario.accumulator?.autoDropPerNode && ctx.scenario.pool){
+      rollAutoDrops(ctx.scenario.pool);
+    }
+  }
+});
+
+/* ======================================================================== */
+
+function enterTier(tier){
+  if(tier === 2){
+    if(currency < TIER2_COST) return;
+    currency -= TIER2_COST;
+  }
+  const id = drawScenario(tier);
+  curScn = SCENARIOS[id]; curScnId = id; curNodeId = "start"; turn = 1;
+  runLoot = []; pendingLoot = []; pendingCheck = null; pendingReward = 0;
+  runState = {};
+  const _hooks = WINMODE_HOOKS[curScn.winMode];
+  if(_hooks?.onEnter) _hooks.onEnter(runState);
+  screen = "scenario"; showingBag = false;
+  processGrant(curScn.nodes["start"]);
+  render(true);
+}
+
+// 節點層 grant：保證授予道具，加進 inventory + runLoot + pendingLootItems（觸發 Popup）
+function processGrant(node){
+  if(!node?.grant?.length) return;
+  for(const id of node.grant){
+    const def = ITEMS[id]; if(!def) continue;
+    // 同名道具已在背包則跳過（避免重複授予）
+    if(inventory.some(it => it.name === def.name)) continue;
+    const entry = {
+      name:def.name, effect:def.effect, value:def.value, carry:def.carry,
+      check:def.check||null, bonus:def.bonus||0, slot:def.slot||null,
+      icon:def.icon||"📦", rarity:def.rarity||"white",
+      finalBonus:def.finalBonus||0,
+      memoryPower:def.memoryPower||false,
+      quest:def.quest||false,
+      internal:def.internal||false,
+    };
+    const autoEquipped = entry.slot && !equipped[entry.slot];
+    if(autoEquipped) equipped[entry.slot] = entry;
+    inventory.push(entry);
+    runLoot.push(entry);
+    if(!entry.internal) pendingLootItems.push({ entry, autoEquipped });
+  }
+}
+
+function choose(choice){
+  // 通過 climax 後停止計回合；climax 當回合本身仍計入
+  if(!runState._pastClimax) turn += 1;
+  if(curScn.nodes[curNodeId]?.climax) runState._pastClimax = true;
+  pendingCheck = null; pendingLoot = []; pendingReward = 0;
+  const hooks = WINMODE_HOOKS[curScn.winMode];
+  const ctx = { inventory, runLoot, scenario:curScn, turn };
+  let nextId;
+
+  if(choice.check){
+    const b = bonusFor(choice.check.type);
+    const roll = 1 + Math.floor(Math.random()*20);
+    const total = roll + b;
+    const ok = total >= choice.check.dc;
+    pendingCheck = { type:choice.check.type, roll, bonus:b, total, dc:choice.check.dc, ok };
+    nextId = ok ? choice.check.success : choice.check.fail;
+    if(ok && choice.reward){ pendingReward = choice.reward; currency += choice.reward; }
+    hooks?.onChoiceMade?.(choice, runState, { ...ctx, checkOk:ok });
+  } else {
+    // hook 可回傳 { overrideNextId, endKind } 覆蓋預設行為
+    const hookResult = hooks?.onChoiceMade?.(choice, runState, ctx);
+    nextId = hookResult?.overrideNextId ?? choice.next;
+    if(hookResult?.endKind){ curNodeId = nextId; resolveEnd(hookResult.endKind); render(true); return; }
+  }
+
+  if(choice.loot) pendingLoot = rollDrops(curScn.pool);
+
+  // 第 steerAt 回合起導向高潮（特殊副本可跳過）
+  if(!hooks?.skipSteer){
+    const steerAt = curScn.steerAt ?? 10;
+    if(turn >= steerAt && !SCENARIOS_isEnd(nextId) && !curScn.nodes[nextId].climax && !runState._pastClimax){
+      nextId = curScn.climaxNode;
+    }
+  }
+  // 回合上限強制結束（特殊副本可跳過）
+  if(!hooks?.skipTurnLimit){
+    if(turn >= curScn.turnLimit && !SCENARIOS_isEnd(nextId)){
+      nextId = (curScn.win === "survive") ? findEnd("cleared") : findEnd("dead");
+    }
+  }
+
+  curNodeId = nextId;
+  // 每回合 hook（自動掉落等），結局節點由 hook 內部判斷是否跳過
+  if(hooks?.onNodeEnter) hooks.onNodeEnter(curNodeId, runState, ctx);
+
+  const node = curScn.nodes[nextId];
+  processGrant(node);
+  if(node.end){ resolveEnd(node.end); }
+  render(true);
+}
+function SCENARIOS_isEnd(id){ return !!curScn.nodes[id].end; }
+function findEnd(kind){ for(const k in curScn.nodes){ if(curScn.nodes[k].end === kind) return k; } return "dead"; }
+
+function removeFromInventory(entry){ const i = inventory.indexOf(entry); if(i >= 0) inventory.splice(i,1); }
+
+// 結算：過關套用 can_carry_out + 把用完即丟的變賣成點數；死亡賠掉本場戰利品
+const EQUIP_BREAK_CHANCE  = 0.05;  // 失敗時裝備損壞機率
+const GODDESS_CHANCE      = 0.01;  // 強制退出時史詩以上道具救援機率
+const EPIC_RARITIES       = new Set(["yellow","red","gold","rainbow"]);
+
+function resolveEnd(kind, isForceExit){
+  ending = { kind, carried:[], consumed:[], sold:0, base:0, lost:[], broken:[], goddessGifts:[] };
+  if(kind === "cleared"){
+    ending.base = curScn.tier * 30;
+    for(const it of runLoot){
+      if(it.carry){ ending.carried.push(it.name); }
+      else { removeFromInventory(it); ending.consumed.push(it.name); ending.sold += it.value; }
+    }
+    currency += ending.base + ending.sold;
+  } else {
+    ending.escaped = [];
+
+    if(isForceExit){
+      // 強制退出：1% 機率救援史詩以上道具
+      for(const it of runLoot){
+        if(EPIC_RARITIES.has(it.rarity) && Math.random() < GODDESS_CHANCE){
+          ending.goddessGifts.push(it.name); // 帶出，留在 inventory
+        } else {
+          removeFromInventory(it); ending.lost.push(it.name);
+        }
+      }
+    } else {
+      // 一般失敗：原有 10% carry 逃脫
+      for(const it of runLoot){
+        if(it.carry && Math.random() < CARRY_ESCAPE_CHANCE){
+          ending.escaped.push(it.name);
+        } else {
+          removeFromInventory(it); ending.lost.push(it.name);
+        }
+      }
+    }
+
+    // 裝備損壞（5%），損壞後變回憶碎片，留在背包但失去功能
+    for(const slot in equipped){
+      const it = equipped[slot];
+      if(!it) continue;
+      if(Math.random() < EQUIP_BREAK_CHANCE){
+        const oldName = it.name;
+        it.name   = "["+oldName+"的回憶碎片...]";
+        it.effect = "某件裝備留下的碎片，已失去原有功能。";
+        it.check  = null; it.bonus = 0; it.slot = null; it.value = 0;
+        equipped[slot] = null;
+        ending.broken.push(oldName);
+      }
+    }
+  }
+  // 清除已消耗/丟失道具的裝備槽
+  for(const slot in equipped){ if(equipped[slot] && !inventory.includes(equipped[slot])) equipped[slot] = null; }
+  runLoot = []; pendingLootItems = [];
+  screen = "ending";
+  saveState();
+}
+
+/* =============================== 畫面 ===================================== */
+const $ = id => document.getElementById(id);
+function el(tag, cls, html){ const e = document.createElement(tag); if(cls) e.className = cls; if(html != null) e.innerHTML = html; return e; }
+
+function render(animate){
+  $("points").textContent = currency;
+  const v = $("view"); v.innerHTML = "";
+  if(screen === "hub")            renderHub(v);
+  else if(screen === "shop")      renderShop(v);
+  else if(screen === "equip")     renderEquipScreen(v);
+  else if(screen === "scenario")  renderScenario(v, animate);
+  else if(screen === "ending")    renderEnding(v);
+  else if(screen === "achievements") renderAchievements(v);
+  // 非裝備頁面時移除底部行動列
+  if(screen !== "equip"){
+    const bar = document.getElementById("equip-action-bar");
+    if(bar) bar.remove();
+  }
+  renderLootPopup();
+  renderAchievementPopup();
+}
+
+/* ── 成就解鎖 Popup ── */
+function renderAchievementPopup(){
+  let pop = document.getElementById("ach-pop");
+  if(!pendingAchievements.length){ if(pop) pop.remove(); return; }
+  if(!pop){
+    pop = document.createElement("div");
+    pop.id = "ach-pop"; pop.className = "ach-popup-overlay";
+    document.body.appendChild(pop);
+  }
+  pop.innerHTML = "";
+  const id  = pendingAchievements[0];
+  const ach = ACHIEVEMENTS[id];
+  const box = document.createElement("div"); box.className = "ach-popup";
+  box.innerHTML =
+    `<div class="ach-popup-tag">✦ 成就解鎖 ✦</div>`+
+    `<div class="ach-popup-icon">${ach.icon||"🏆"}</div>`+
+    `<div class="ach-popup-name" ${rarNameClass(ach.rarity)}>${ach.name}</div>`+
+    `<div style="margin-bottom:10px">${rarBadge(ach.rarity)}</div>`+
+    `<div class="ach-popup-hint">${ach.hint||""}</div>`;
+  if(ach.reward?.points)
+    box.innerHTML += `<div style="font-family:var(--mono);font-size:13px;color:var(--jade);margin-bottom:14px">+${ach.reward.points} 點</div>`;
+  if(ach.reward?.title)
+    box.innerHTML += `<div style="font-family:var(--mono);font-size:12px;color:var(--brass);margin-bottom:14px">獲得頭銜：${ach.reward.title}</div>`;
+  const btn = document.createElement("button");
+  btn.className = "act primary"; btn.style.width="100%";
+  btn.innerHTML = '<span class="mark">▸</span><span>確認</span>';
+  btn.onclick = () => { pendingAchievements.shift(); pop.remove(); if(pendingAchievements.length) render(); };
+  box.appendChild(btn);
+  pop.appendChild(box);
+}
+
+/* ── 道具獲得 Popup ── */
+function renderLootPopup(){
+  let pop = document.getElementById("loot-pop");
+  if(!pendingLootItems.length){ if(pop) pop.remove(); return; }
+  if(!pop){
+    pop = document.createElement("div");
+    pop.id = "loot-pop"; pop.className = "loot-overlay";
+    document.body.appendChild(pop);
+  }
+  pop.innerHTML = "";
+  const box = document.createElement("div"); box.className = "loot-popup";
+
+  const ttl = document.createElement("div"); ttl.className = "loot-popup-ttl";
+  ttl.textContent = "✨ 獲得道具 × " + pendingLootItems.filter(({entry}) => !entry.internal).length;
+  box.appendChild(ttl);
+
+  const cards = document.createElement("div"); cards.className = "loot-cards";
+  pendingLootItems.filter(({entry}) => !entry.internal).forEach(({entry:it, autoEquipped}) => {
+    const card = document.createElement("div"); card.className = "loot-card";
+    const icon = document.createElement("div"); icon.className = "loot-icon";
+    icon.textContent = it.icon || "📦";
+    const info = document.createElement("div"); info.className = "loot-info";
+    info.innerHTML =
+      `<div class="loot-name" ${rarNameClass(it.rarity)}>${it.name}</div>`+
+      `<div class="loot-eff">${it.effect}</div>`;
+    const tags = document.createElement("div"); tags.className = "loot-tags";
+    if(it.rarity) tags.innerHTML += rarBadge(it.rarity);
+    if(it.slot)   tags.innerHTML += `<span class="loot-tag slot">${SLOTS[it.slot]?.label||it.slot}</span>`;
+    if(it.bonus)  tags.innerHTML += `<span class="loot-tag bonus">${it.check} +${it.bonus}</span>`;
+    if(it.carry)  tags.innerHTML += `<span class="loot-tag carry">可帶出</span>`;
+    if(autoEquipped) tags.innerHTML += `<span class="loot-tag auto">✓ 已自動裝備</span>`;
+    info.appendChild(tags);
+    card.appendChild(icon); card.appendChild(info);
+    if(it.slot && !autoEquipped){
+      const btn = document.createElement("button"); btn.className = "loot-equip-btn";
+      const isEquipped = equipped[it.slot] === it;
+      btn.textContent = isEquipped ? "✓ 已裝備" : "裝備";
+      btn.disabled = isEquipped;
+      btn.onclick = () => { equipToSlot(it, it.slot); renderLootPopup(); };
+      card.appendChild(btn);
+    }
+    cards.appendChild(card);
+  });
+  box.appendChild(cards);
+
+  const cont = document.createElement("button");
+  cont.className = "act primary"; cont.style.width = "100%";
+  cont.innerHTML = '<span class="mark">▸</span><span>繼續探索</span>';
+  cont.onclick = () => { pendingLootItems = []; pop.remove(); };
+  box.appendChild(cont);
+  pop.appendChild(box);
+}
+
+/* ── 角色裝備介面（條列式）── */
+function renderEquipScreen(v){
+  // 若 selectedEquipItem 已不在背包就清掉
+  if(selectedEquipItem && !inventory.includes(selectedEquipItem)) selectedEquipItem = null;
+
+  v.appendChild(el("h2","screen-title","裝備管理"));
+  v.appendChild(el("p","lede","點擊道具卡選取，再按右下角「裝備」或「解除裝備」。只有裝備槽內的道具才提供加成。"));
+
+  // 裝備槽概覽（小晶片列）
+  const summary = document.createElement("div"); summary.className = "slot-summary";
+  Object.keys(SLOTS).forEach(slot => {
+    const it = equipped[slot];
+    const chip = document.createElement("div");
+    const isSelected = selectedEquipItem && equipped[slot] === selectedEquipItem;
+    chip.className = "slot-chip" + (it ? " filled" : "") + (isSelected ? " selected" : "");
+    chip.innerHTML = `<span class="sc-label">${SLOTS[slot].label}</span>`;
+    if(it){
+      chip.innerHTML += `<span class="sc-name">${it.icon||"📦"} ${it.name}</span>`;
+      chip.title = "點選此道具";
+      chip.onclick = () => { selectedEquipItem = it; render(); };
+    } else {
+      chip.innerHTML += `<span class="sc-empty">空</span>`;
+    }
+    summary.appendChild(chip);
+  });
+  v.appendChild(summary);
+
+  // 道具條列
+  const sep = document.createElement("div");
+  sep.style.cssText = "border-top:1px solid var(--line);margin-bottom:14px;";
+  v.appendChild(sep);
+
+  if(!inventory.length){
+    v.appendChild(el("p","lede","背包是空的。"));
+  } else {
+    const list = document.createElement("div"); list.className = "item-list";
+    inventory.filter(it => !it.internal).forEach(it => {
+      const isEq = Object.values(equipped).includes(it);
+      const isSel = selectedEquipItem === it;
+      const card = document.createElement("div");
+      card.className = "item-card" + (isSel ? " selected" : "") + (isEq ? " equipped-mark" : "");
+      if(isEq){
+        const ind = document.createElement("div"); ind.className = "ic-equip-indicator";
+        const slotName = Object.keys(equipped).find(s => equipped[s] === it);
+        ind.textContent = "✓ " + (SLOTS[slotName]?.label || slotName);
+        card.appendChild(ind);
+      }
+      const iconEl = document.createElement("div"); iconEl.className = "ic-icon";
+      iconEl.textContent = it.icon || "📦";
+      const body = document.createElement("div"); body.className = "ic-body";
+      body.innerHTML =
+        `<div class="ic-top">`+
+          `<span class="ic-name" ${rarNameClass(it.rarity)}>${it.name}</span>`+
+          (it.rarity ? rarBadge(it.rarity) : "")+
+        `</div>`+
+        `<div class="ic-eff">${it.effect}</div>`;
+      const tags = document.createElement("div"); tags.className = "ic-tags";
+      if(it.slot) tags.innerHTML += `<span class="ic-tag slot-t">${SLOTS[it.slot]?.label||it.slot}</span>`;
+      if(it.bonus) tags.innerHTML += `<span class="ic-tag bonus-t">${it.check} +${it.bonus}</span>`;
+      if(it.carry) tags.innerHTML += `<span class="ic-tag carry-t">可帶出</span>`;
+      body.appendChild(tags);
+      card.appendChild(iconEl); card.appendChild(body);
+      card.onclick = () => {
+        selectedEquipItem = (isSel ? null : it);
+        render();
+      };
+      list.appendChild(card);
+    });
+    v.appendChild(list);
+  }
+
+  // 返回按鈕
+  const acts = el("div","actions"); acts.style.marginTop = "10px";
+  const back = mkAct("返回記憶狹間","←",null,null,"primary");
+  back.onclick = () => { selectedEquipItem = null; screen = "hub"; render(); };
+  acts.appendChild(back);
+  v.appendChild(acts);
+  v.appendChild(footnote());
+
+  // 固定底部行動列
+  let bar = document.getElementById("equip-action-bar");
+  if(!bar){
+    bar = document.createElement("div");
+    bar.id = "equip-action-bar"; bar.className = "equip-action-bar";
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = "";
+  const sel = selectedEquipItem;
+  const selSlot = sel ? Object.keys(equipped).find(s => equipped[s] === sel) : null;
+  const canEquip  = sel && sel.slot && !selSlot;
+  const canUnequip = sel && !!selSlot;
+
+  const unBtn = document.createElement("button");
+  unBtn.className = "equip-act-btn unequip";
+  unBtn.textContent = "解除裝備";
+  unBtn.disabled = !canUnequip;
+  unBtn.onclick = () => { if(canUnequip){ unequipSlot(selSlot); selectedEquipItem = sel; render(); } };
+  bar.appendChild(unBtn);
+
+  const eqBtn = document.createElement("button");
+  eqBtn.className = "equip-act-btn equip";
+  eqBtn.textContent = "裝備";
+  eqBtn.disabled = !canEquip;
+  eqBtn.onclick = () => {
+    if(canEquip){
+      // 若同槽已有裝備，先換下
+      equipToSlot(sel, sel.slot);
+      selectedEquipItem = sel;
+      render();
+    }
+  };
+  bar.appendChild(eqBtn);
+}
+
+function renderHub(v){
+  v.appendChild(el("h2","screen-title","記憶狹間"));
+  v.appendChild(el("p","lede","選擇一層副本進入。清掉副本可累積點數；高層更難、掉落更值錢。"));
+
+  // 已裝備道具快覽
+  const equipped_items = Object.values(equipped).filter(Boolean);
+  const bag = el("div","panel");
+  bag.appendChild(el("h3",null,"已裝備 / 背包"));
+  if(!inventory.length){
+    bag.appendChild(el("div","empty","空的。進副本、挑有「機率掉落」的行動，也許能撿到東西。能「帶出」的稀有物品會留在這裡，並在之後的判定中加成。"));
+  } else {
+    inventory.filter(it => !it.internal).forEach(it => {
+      const isEq = Object.values(equipped).includes(it);
+      const row = el("div","item");
+      row.appendChild(el("span","name",
+        (it.icon ? it.icon+" " : "")+
+        it.name +
+        (isEq ? `<span class="carry">${SLOTS[it.slot]?.label||"裝備中"}</span>` : (it.carry ? '<span class="carry">可帶出</span>' : ""))+
+        ' <span class="eff">'+it.effect+'</span>'));
+      row.appendChild(el("span","val","價值 "+it.value));
+      bag.appendChild(row);
+    });
+  }
+  v.appendChild(bag);
+
+  // 行動按鈕
+  const acts = el("div","actions");
+  const t1 = mkAct("進入 Tier 1 副本", "▸"); t1.onclick = () => enterTier(1); acts.appendChild(t1);
+  const t2 = mkAct("進入 Tier 2 副本", "▸", null, {cost:TIER2_COST});
+  if(currency < TIER2_COST) t2.disabled = true;
+  t2.onclick = () => enterTier(2); acts.appendChild(t2);
+  const eqBtn = mkAct("裝備管理", "▸");
+  eqBtn.onclick = () => { screen = "equip"; render(); }; acts.appendChild(eqBtn);
+  const shopBtn = mkAct("前往主神商店", "▸");
+  shopBtn.onclick = () => { screen = "shop"; render(); }; acts.appendChild(shopBtn);
+  const achCount = [...unlockedAchievements].filter(id => ACHIEVEMENTS[id]).length;
+  const achBtn = mkAct(`成就系統　${achCount}／${Object.keys(ACHIEVEMENTS).length}`, "▸");
+  achBtn.onclick = () => { screen = "achievements"; render(); }; acts.appendChild(achBtn);
+  v.appendChild(acts);
+
+  const resetBtn = el("button","bag-btn");
+  resetBtn.style.marginTop = "18px"; resetBtn.textContent = "⚠ 清除存檔重新開始";
+  resetBtn.onclick = resetSave;
+  const resetWrap = el("div","toolbar"); resetWrap.appendChild(resetBtn);
+  v.appendChild(resetWrap);
+  v.appendChild(footnote());
+}
+
+function renderShop(v){
+  v.appendChild(el("h2","screen-title","主神商店"));
+  v.appendChild(el("p","lede","購買可在副本中加成判定的裝備、解鎖新劇本，或出售背包中的物品換取點數。"));
+
+  // 出售道具
+  const sellPanel = el("div","panel");
+  sellPanel.appendChild(el("h3",null,"出售道具"));
+  if(!inventory.length){
+    sellPanel.appendChild(el("div","empty","背包是空的，沒有東西可以出售。"));
+  } else {
+    inventory.filter(it => !it.internal).forEach(it => {
+      const row = el("div","item");
+      row.appendChild(el("span","name",
+        it.name + (it.carry ? '<span class="carry">可帶出</span>' : '') +
+        ' <span class="eff">'+it.effect+'</span>'));
+      const btn = el("button","shop-btn sell","出售 +"+it.value+" 點");
+      btn.onclick = () => { currency += it.value; removeFromInventory(it); saveState(); render(); };
+      row.appendChild(btn);
+      sellPanel.appendChild(row);
+    });
+  }
+  v.appendChild(sellPanel);
+
+  // 購買裝備
+  const buyPanel = el("div","panel");
+  buyPanel.appendChild(el("h3",null,"購買裝備"));
+  Object.entries(SHOP_ITEMS).forEach(([id, def]) => {
+    const owned = inventory.some(it => it.name === def.name);
+    const row = el("div","item" + (owned ? " owned" : ""));
+    row.appendChild(el("span","name",
+      def.name + (owned ? '<span class="carry">已裝備</span>' : '') +
+      ' <span class="eff">'+def.effect+'</span>'));
+    if(owned){
+      row.appendChild(el("span","tag-owned","已持有"));
+    } else {
+      const btn = el("button","shop-btn buy", def.price+" 點 購買");
+      btn.disabled = currency < def.price;
+      btn.onclick = () => {
+        currency -= def.price;
+        const entry = { name:def.name, effect:def.effect, value:Math.floor(def.price*0.6),
+          carry:true, check:def.check, bonus:def.bonus, slot:def.slot, icon:def.icon||"📦" };
+        if(entry.slot && !equipped[entry.slot]) equipped[entry.slot] = entry;
+        inventory.push(entry);
+        saveState(); render();
+      };
+      row.appendChild(btn);
+    }
+    buyPanel.appendChild(row);
+  });
+  v.appendChild(buyPanel);
+
+  // 解鎖劇本
+  const lockedList = Object.entries(SCENARIOS).filter(([,s]) => s.locked);
+  if(lockedList.length){
+    const unlockPanel = el("div","panel");
+    unlockPanel.appendChild(el("h3",null,"解鎖劇本"));
+    lockedList.forEach(([id, s]) => {
+      const isUnlocked = unlockedScenarios.has(id);
+      const row = el("div","item" + (isUnlocked ? " owned" : ""));
+      row.appendChild(el("span","name",
+        s.title + (isUnlocked ? '<span class="carry">已解鎖</span>' : '') +
+        ' <span class="eff">Tier '+s.tier+' · '+s.theme+'</span>'));
+      if(isUnlocked){
+        row.appendChild(el("span","tag-owned","可遊玩"));
+      } else {
+        const btn = el("button","shop-btn unlock", s.price+" 點 解鎖");
+        btn.disabled = currency < s.price;
+        btn.onclick = () => { currency -= s.price; unlockedScenarios.add(id); saveState(); render(); };
+        row.appendChild(btn);
+      }
+      unlockPanel.appendChild(row);
+    });
+    v.appendChild(unlockPanel);
+  }
+
+  // 返回
+  const acts = el("div","actions");
+  const back = mkAct("返回記憶狹間","←",null,null,"primary");
+  back.onclick = () => { screen = "hub"; render(); };
+  acts.appendChild(back);
+  v.appendChild(acts);
+  v.appendChild(footnote());
+}
+
+function renderScenario(v, animate){
+  if(showingBag){ v.appendChild(bagPanel()); v.appendChild(toolbar()); v.appendChild(footnote()); return; }
+  const node = curScn.nodes[curNodeId];
+
+  const obj = el("div","objective");
+  const winLabel = {survive:"SURVIVE 生存",escape:"ESCAPE 逃出",objective:"OBJECTIVE 任務"}[curScn.win];
+  obj.appendChild(el("span","obj-text", curScn.objective + '<span class="tag">'+winLabel+'</span>'));
+  obj.appendChild(el("span","turn", '回合 <b>'+turn+'</b> / '+curScn.turnLimit));
+  v.appendChild(obj);
+
+  const scene = el("div","scene" + (animate ? " reveal" : "")); scene.textContent = node.scene;
+  v.appendChild(scene);
+
+  // 判定 / 掉落提示
+  if(pendingCheck || pendingLoot.length || pendingReward){
+    const n = el("div","notice");
+    if(pendingCheck){
+      const c = pendingCheck;
+      n.innerHTML += '<div class="roll">🎲 '+c.type+'判定：擲出 '+c.roll+(c.bonus?' + 加成 '+c.bonus:'')+' = '+c.total
+        +'（需 ≥ '+c.dc+'）→ <b class="'+(c.ok?'ok':'no')+'">'+(c.ok?'成功':'失敗')+'</b></div>';
+    }
+    if(pendingReward) n.innerHTML += '<div class="gain">⚡ 高危成功獎勵 +'+pendingReward+' 點</div>';
+    if(pendingLoot.length) n.innerHTML += '<div class="gain">🎁 獲得：'+pendingLoot.join("、")+'</div>';
+    v.appendChild(n);
+  }
+
+  const acts = el("div","actions");
+  const visible = node.choices.filter(c => {
+    if(!c.require) return true;
+    if(Array.isArray(c.require)) return c.require.every(r => hasItem(r));
+    return hasItem(c.require);
+  });
+  visible.forEach((c,i) => {
+    const opt = c.check ? {check:c.check.type, danger:c.danger} : (c.loot ? {loot:true} : null);
+    const b = mkAct(c.text, (i+1)+".", opt);
+    b.onclick = () => choose(c); acts.appendChild(b);
+  });
+  v.appendChild(acts);
+  v.appendChild(toolbar());
+  v.appendChild(footnote());
+}
+
+function renderEnding(v){
+  const node = curScn.nodes[curNodeId];
+  v.appendChild(el("div","ending "+ending.kind, ending.kind === "cleared" ? "◇ 副本過關" : "◆ 你死了"));
+  v.appendChild(el("div","scene reveal")).textContent = node.scene;
+
+  const n = el("div","notice");
+  if(ending.kind === "cleared"){
+    n.innerHTML += '<div class="gain">過關獎勵 +'+ending.base+' 點</div>';
+    if(ending.sold)     n.innerHTML += '<div class="gain">變賣戰利品（'+ending.consumed.join("、")+'）+'+ending.sold+' 點</div>';
+    if(ending.carried.length) n.innerHTML += '<div class="gain">💎 帶出副本：'+ending.carried.join("、")+'</div>';
+    if(!ending.sold && !ending.carried.length) n.innerHTML += '<div class="roll">這趟沒撿到東西。</div>';
+  } else {
+    // 湖中女神的眷顧（強制退出 1% 救援）
+    if(ending.goddessGifts && ending.goddessGifts.length){
+      n.innerHTML += '<div class="gain" style="color:#c97fe0;border-left:2px solid #c97fe0;padding-left:8px;margin-bottom:4px">✦ 湖中女神的眷顧</div>';
+      ending.goddessGifts.forEach(name => {
+        n.innerHTML += '<div class="gain" style="color:#c97fe0">就算失敗了，還是可以獲得道具「'+name+'」</div>';
+      });
+    }
+    // 一般失敗 10% 逃脫
+    if(ending.escaped && ending.escaped.length)
+      n.innerHTML += '<div class="gain">🍀 奇蹟帶出（10% 觸發）：'+ending.escaped.join("、")+'</div>';
+    n.innerHTML += (ending.lost.length
+      ? '<div class="loss">本場撿到的東西失去了：'+ending.lost.join("、")+'</div>'
+      : '<div class="roll">這趟沒撿到東西。</div>');
+    // 裝備損壞
+    if(ending.broken && ending.broken.length){
+      ending.broken.forEach(name => {
+        n.innerHTML += '<div class="loss">💔 「'+name+'」損壞，化為回憶碎片...</div>';
+      });
+    }
+    n.innerHTML += '<div class="roll">（點數與帶入副本前的舊物品保留。）</div>';
+  }
+  v.appendChild(n);
+
+  const acts = el("div","actions");
+  const b = mkAct("返回記憶狹間", "▸", null, null, "primary");
+  b.onclick = () => { screen = "hub"; render(); }; acts.appendChild(b);
+  v.appendChild(acts);
+}
+
+/* ── 成就畫面 ── */
+function renderAchievements(v){
+  v.appendChild(el("h2","screen-title","成就系統"));
+
+  const total    = Object.keys(ACHIEVEMENTS).length;
+  const unlocked = [...unlockedAchievements].filter(id => ACHIEVEMENTS[id]).length;
+  const stat = el("div","ach-stat");
+  stat.innerHTML = `已解鎖 <b>${unlocked}</b> / ${total}`;
+  v.appendChild(stat);
+
+  // 按劇本分組
+  const groups = {};
+  Object.entries(ACHIEVEMENTS).forEach(([id, ach]) => {
+    const g = ach.scenario || "general";
+    if(!groups[g]) groups[g] = [];
+    groups[g].push({ id, ach });
+  });
+
+  Object.entries(groups).forEach(([scnId, list]) => {
+    const scn = SCENARIOS[scnId];
+    const label = el("div","ach-group-label", scn ? `${scn.title}　T${scn.tier}` : scnId);
+    v.appendChild(label);
+
+    const listEl = el("div","ach-list");
+    list.forEach(({ id, ach }) => {
+      const isUnlocked = unlockedAchievements.has(id);
+      const show = isUnlocked || ach.visible;
+      const card = el("div","ach-card " + (isUnlocked ? "unlocked" : "locked"));
+      const iconEl = el("div","ach-icon", show ? (ach.icon||"🏆") : "❓");
+      const body  = el("div","ach-body");
+      body.innerHTML =
+        `<div class="ach-name" ${show ? rarNameClass(ach.rarity) : ""}>${show ? ach.name : "???"}</div>`+
+        `<div class="ach-hint">${isUnlocked ? (ach.hint||"") : (ach.visible ? (ach.hint||"") : "解鎖後顯示")}</div>`;
+      const tags = el("div","ach-tags");
+      if(show) tags.innerHTML += rarBadge(ach.rarity);
+      if(show && ach.type) tags.innerHTML += `<span class="ach-tag type-t">${{collect:"蒐集",title:"頭銜",points:"點數",unlock:"解鎖"}[ach.type]||ach.type}</span>`;
+      if(isUnlocked) tags.innerHTML += `<span class="ach-tag type-t" style="color:var(--jade);border-color:#4a6b54">✓ 已解鎖</span>`;
+      body.appendChild(tags);
+      card.appendChild(iconEl); card.appendChild(body);
+      listEl.appendChild(card);
+    });
+    v.appendChild(listEl);
+  });
+
+  const acts = el("div","actions");
+  const back = mkAct("返回記憶狹間","←",null,null,"primary");
+  back.onclick = () => { screen = "hub"; render(); };
+  acts.appendChild(back);
+  v.appendChild(acts);
+  v.appendChild(footnote());
+}
+
+// 行動按鈕。opt 可帶 {loot} / {check} / {cost}
+function mkAct(text, mark, opt, costObj, extra){
+  const b = el("button","act"+(extra?" "+extra:""));
+  b.appendChild(el("span","mark",mark));
+  b.appendChild(el("span",null,text));
+  if(opt && opt.loot)  b.appendChild(el("span","pill","機率掉落"));
+  if(opt && opt.check) b.appendChild(el("span","pill check",opt.check+"判定"));
+  if(opt && opt.danger === 2) b.appendChild(el("span","pill warn","⚠ 中危"));
+  if(opt && opt.danger === 3) b.appendChild(el("span","pill high","☠ 高危"));
+  const cost = costObj && costObj.cost;
+  if(cost) b.appendChild(el("span","pill cost","-"+cost+" 點"));
+  return b;
+}
+
+function forceExit(){
+  if(!confirm("強制退出副本？\n本場獲得的道具將全數丟棄，等同失敗。\n（史詩以上裝備有 1% 機率被湖中女神眷顧帶出）")) return;
+  const deadNode = findEnd("dead");
+  curNodeId = deadNode;
+  resolveEnd("dead", true);
+  render(true);
+}
+
+function toolbar(){
+  const t = el("div","toolbar");
+  t.style.display = "flex"; t.style.gap = "10px"; t.style.flexWrap = "wrap";
+  const b = el("button","bag-btn");
+  b.textContent = showingBag ? "← 返回場景" : "🎒 背包（"+inventory.length+"）";
+  b.onclick = () => { showingBag = !showingBag; render(); };
+  t.appendChild(b);
+  const exitBtn = el("button","bag-btn");
+  exitBtn.style.color = "var(--rust)"; exitBtn.style.borderColor = "#5a2e29";
+  exitBtn.textContent = "⚠ 強制退出";
+  exitBtn.onclick = forceExit;
+  t.appendChild(exitBtn);
+  return t;
+}
+function bagPanel(){
+  const p = el("div","panel"); p.appendChild(el("h3",null,"背包 / 物品清單"));
+  if(!inventory.length){ p.appendChild(el("div","empty","背包是空的。")); }
+  else inventory.forEach(it => {
+    const row = el("div","item");
+    row.appendChild(el("span","name", it.name + (it.carry?'<span class="carry">可帶出</span>':'') + ' <span class="eff">'+it.effect+'</span>'));
+    row.appendChild(el("span","val","價值 "+it.value));
+    p.appendChild(row);
+  });
+  return p;
+}
+function footnote(){
+  return el("div","footnote",
+    '這是<b>無執行時 AI</b> 的版本：劇本與物品是事先準備好的資料（正式版可用 AI 離線大量生成），'
+    + '而<b>抽選、排除、掉落、判定、貨幣、生死</b>全由程式算。整支就是一個靜態網頁，丟上 GitHub Pages 就能分享。');
+}
+
+/* ========================= 開發者面板 ================================== */
+let devOpen = false;
+let devTab = 0;
+let devForcedScenario = null; // DEV 強制指定下一關卡 ID，用完自動清除
+const CHECK_TYPES = ["膽識","搜查","蠻力","敏捷"];
+
+function devToggle(){ devOpen = !devOpen; devRender(); }
+
+document.addEventListener("keydown", e => { if(e.key === "`") devToggle(); });
+
+function devEl(tag, cls, html){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(html != null) e.innerHTML = html;
+  return e;
+}
+
+function devRender(){
+  const fab = document.getElementById("dev-fab-btn");
+  if(fab) fab.onclick = devToggle;
+
+  let ov = document.getElementById("dev-ov");
+  if(!devOpen){ if(ov) ov.remove(); return; }
+  if(!ov){ ov = document.createElement("div"); ov.id = "dev-ov"; ov.className = "dev-overlay"; document.body.appendChild(ov); }
+  ov.innerHTML = "";
+
+  const panel = devEl("div","dev-panel");
+
+  // Header
+  const hdr = devEl("div","dev-header");
+  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span>';
+  const closeB = devEl("button","dev-btn close","✕ 關閉");
+  closeB.onclick = devToggle;
+  hdr.appendChild(closeB);
+  panel.appendChild(hdr);
+
+  // 強制關卡列（常駐，不隨 Tab 切換消失）
+  const forceRow = devEl("div","");
+  forceRow.style.cssText = "display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #1e2a30;background:#0d1317;";
+  const forceLabel = devEl("span","","強制下一關卡");
+  forceLabel.style.cssText = "font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.08em;white-space:nowrap;";
+  const forceSel = document.createElement("select");
+  forceSel.className = "dev-select"; forceSel.style.flex = "1";
+  const defOpt = document.createElement("option");
+  defOpt.value = ""; defOpt.textContent = "隨機（正常抽選）";
+  forceSel.appendChild(defOpt);
+  Object.entries(SCENARIOS).forEach(([id, scn]) => {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = `${scn.title}　T${scn.tier}${scn.locked?" 🔒":""}`;
+    if(devForcedScenario === id) o.selected = true;
+    forceSel.appendChild(o);
+  });
+  forceSel.addEventListener("change", () => { devForcedScenario = forceSel.value || null; devRender(); });
+  forceRow.append(forceLabel, forceSel);
+  if(devForcedScenario){
+    const badge = devEl("span","","▶ 生效中，關閉後進任一副本即觸發");
+    badge.style.cssText = "font-family:var(--mono);font-size:10px;color:var(--jade);white-space:nowrap;";
+    forceRow.appendChild(badge);
+  }
+  panel.appendChild(forceRow);
+
+  // 點數調整列（常駐）
+  const pointsRow = devEl("div","");
+  pointsRow.style.cssText = "display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #1e2a30;background:#0d1317;";
+  const pointsLabel = devEl("span","","快速點數");
+  pointsLabel.style.cssText = "font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.08em;white-space:nowrap;";
+  pointsRow.appendChild(pointsLabel);
+  [10, 100, 1000].forEach(amt => {
+    const btn = devEl("button","dev-btn add",`+${amt}`);
+    btn.onclick = () => { currency += amt; saveState(); $("points").textContent = currency; };
+    pointsRow.appendChild(btn);
+  });
+  panel.appendChild(pointsRow);
+
+  // Tabs
+  const tabBar = devEl("div","dev-tabs");
+  ["商店裝備","副本道具","判定試算","劇本分析","匯出","成就","記事本"].forEach((t,i) => {
+    const tb = devEl("button","dev-tab"+(devTab===i?" active":""), t);
+    tb.onclick = () => { devTab = i; devRender(); };
+    tabBar.appendChild(tb);
+  });
+  panel.appendChild(tabBar);
+
+  const body = devEl("div","dev-body");
+  [devTabShop, devTabItems, devTabProb, devTabScenarios, devTabExport, devTabAchievements, devTabNotepad][devTab](body);
+  panel.appendChild(body);
+  ov.appendChild(panel);
+}
+
+/* ── Tab 0：商店裝備 ── */
+function devTabShop(body){
+  const sec = devEl("div","dev-section");
+  sec.appendChild(devEl("div","dev-section-title","商店裝備 (SHOP_ITEMS)"));
+
+  const SLOT_OPTS = Object.keys(SLOTS);
+  const RAR_OPTS  = Object.keys(RARITY_META);
+
+  function buildShopCard(id, it){
+    const card = devEl("div","dev-item-card");
+
+    /* 列 1：圖示 ＋ 名稱 ＋ 稀有度 ＋ 刪除 */
+    const r1 = devEl("div","dev-ic-r1");
+
+    const iconEl = document.createElement("div");
+    iconEl.className = "dev-ic-icon"; iconEl.contentEditable = "true";
+    iconEl.textContent = it.icon || "📦";
+    iconEl.title = "點擊編輯圖示（貼 emoji）";
+    iconEl.addEventListener("input", () => { it.icon = iconEl.textContent.trim() || "📦"; });
+    iconEl.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); iconEl.blur(); } });
+
+    const nameEl = document.createElement("input");
+    nameEl.className = "dev-ic-name"; nameEl.value = it.name;
+    nameEl.addEventListener("input", () => { it.name = nameEl.value; });
+
+    const rarSel = document.createElement("select");
+    rarSel.className = "dev-select";
+    RAR_OPTS.forEach(r => {
+      const o = document.createElement("option");
+      o.value = r; o.textContent = RARITY_META[r].label;
+      if((it.rarity||"white") === r) o.selected = true;
+      rarSel.appendChild(o);
+    });
+    rarSel.addEventListener("change", () => { it.rarity = rarSel.value; });
+
+    const delBtn = devEl("button","dev-btn del","✕");
+    delBtn.title = "刪除此裝備";
+    delBtn.onclick = () => {
+      if(!confirm("刪除「"+it.name+"」？")) return;
+      delete SHOP_ITEMS[id]; devRender();
+    };
+
+    r1.append(iconEl, nameEl, rarSel, delBtn);
+    card.appendChild(r1);
+
+    /* 列 2：效果說明 */
+    const r2 = devEl("div","dev-ic-r2");
+    const effEl = document.createElement("input");
+    effEl.className = "dev-ic-eff"; effEl.value = it.effect; effEl.placeholder = "效果說明（例：【裝備】膽識 +3）";
+    effEl.addEventListener("input", () => { it.effect = effEl.value; });
+    r2.appendChild(effEl);
+    card.appendChild(r2);
+
+    /* 列 3：數值欄位群 */
+    const r3 = devEl("div","dev-ic-r3");
+
+    function numField(label, field, min, max){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">${label}</span>`;
+      const inp = document.createElement("input");
+      inp.className = "dev-input"; inp.type = "number";
+      inp.min = min; inp.max = max; inp.value = it[field];
+      inp.style.width = "68px";
+      inp.addEventListener("input", () => { it[field] = Number(inp.value); sellbackEl.textContent = Math.floor(it.price*0.6)+" 點"; });
+      wrap.appendChild(inp); return wrap;
+    }
+    function selField(label, field, options){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">${label}</span>`;
+      const sel = document.createElement("select"); sel.className = "dev-select";
+      options.forEach(([val,txt]) => {
+        const o = document.createElement("option");
+        o.value = val ?? ""; o.textContent = txt;
+        if((it[field] ?? null) === (val ?? null)) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", () => { it[field] = sel.value || null; });
+      wrap.appendChild(sel); return wrap;
+    }
+
+    // 回收價（唯讀顯示）
+    const sellWrap = devEl("div","dev-ic-field");
+    sellWrap.innerHTML = `<span class="dev-ic-label">回收</span>`;
+    const sellbackEl = devEl("div","");
+    sellbackEl.style.cssText = "font-family:var(--mono);font-size:12px;color:var(--ink-dim);padding-top:5px;";
+    sellbackEl.textContent = Math.floor(it.price*0.6)+" 點";
+    sellWrap.appendChild(sellbackEl);
+
+    r3.append(
+      numField("售價","price",0,9999),
+      sellWrap,
+      selField("判定","check", CHECK_TYPES.map(t=>[t,t])),
+      numField("加成","bonus",0,10),
+      selField("裝備槽","slot",[[null,"無"],...SLOT_OPTS.map(s=>[s,SLOTS[s].label])])
+    );
+    card.appendChild(r3);
+    return card;
+  }
+
+  const list = devEl("div","");
+  Object.entries(SHOP_ITEMS).forEach(([id, it]) => list.appendChild(buildShopCard(id, it)));
+  sec.appendChild(list);
+
+  const addBtn = devEl("button","dev-btn add","＋ 新增裝備");
+  addBtn.style.marginTop = "4px";
+  addBtn.onclick = () => {
+    const nid = "shop_"+Date.now();
+    SHOP_ITEMS[nid] = {name:"新裝備",effect:"【裝備】描述",price:50,check:"膽識",bonus:1,slot:"acc1",icon:"📦",rarity:"white"};
+    list.appendChild(buildShopCard(nid, SHOP_ITEMS[nid]));
+  };
+  sec.appendChild(addBtn);
+  body.appendChild(sec);
+
+  // 匯出區（即時同步）
+  const expSec0 = devEl("div","dev-section");
+  expSec0.style.marginTop = "24px";
+  expSec0.appendChild(devEl("div","dev-section-title","匯出 SHOP_ITEMS"));
+  const ta0 = devEl("textarea","dev-export-area"); ta0.readOnly = true; ta0.style.height = "180px";
+  const refresh0 = () => { ta0.value = "const SHOP_ITEMS = "+JSON.stringify(SHOP_ITEMS, null, 2)+";"; };
+  refresh0();
+  sec.addEventListener("input",  refresh0);
+  sec.addEventListener("change", refresh0);
+  expSec0.appendChild(ta0);
+  const copyBtn0 = devEl("button","dev-btn copy","複製 SHOP_ITEMS");
+  copyBtn0.onclick = () => {
+    refresh0();
+    const copy = () => { ta0.select(); document.execCommand("copy"); };
+    if(navigator.clipboard){ navigator.clipboard.writeText(ta0.value).catch(copy); } else copy();
+    copyBtn0.textContent = "✓ 已複製！";
+    setTimeout(() => copyBtn0.textContent = "複製 SHOP_ITEMS", 2000);
+  };
+  expSec0.appendChild(copyBtn0);
+  body.appendChild(expSec0);
+}
+
+/* ── Tab 1：副本道具 ── */
+function devTabItems(body){
+  const sec = devEl("div","dev-section");
+  sec.appendChild(devEl("div","dev-section-title","副本掉落道具 (ITEMS)"));
+
+  const SLOT_OPTS = Object.keys(SLOTS);
+  const RAR_OPTS  = Object.keys(RARITY_META);
+
+  function scenariosWithItem(itemId){
+    return new Set(Object.keys(SCENARIOS).filter(sid => (SCENARIOS[sid].pool||[]).includes(itemId)));
+  }
+
+  function buildCard(id, it){
+    const card = devEl("div","dev-item-card");
+    card.dataset.cardId = id;
+
+    /* ── 列 1：圖示 ＋ 名稱 ＋ 稀有度 ＋ 刪除 ── */
+    const r1 = devEl("div","dev-ic-r1");
+
+    const iconEl = document.createElement("div");
+    iconEl.className = "dev-ic-icon"; iconEl.contentEditable = "true";
+    iconEl.textContent = it.icon || "📦";
+    iconEl.title = "點擊編輯圖示（貼 emoji）";
+    iconEl.addEventListener("input", () => { it.icon = iconEl.textContent.trim() || "📦"; });
+    iconEl.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); iconEl.blur(); } });
+
+    const nameEl = document.createElement("input");
+    nameEl.className = "dev-ic-name"; nameEl.value = it.name;
+    nameEl.addEventListener("input", () => { it.name = nameEl.value; });
+
+    const rarSel = document.createElement("select");
+    rarSel.className = "dev-select";
+    RAR_OPTS.forEach(r => {
+      const o = document.createElement("option");
+      o.value = r; o.textContent = RARITY_META[r].label;
+      if((it.rarity||"white") === r) o.selected = true;
+      rarSel.appendChild(o);
+    });
+    rarSel.addEventListener("change", () => { it.rarity = rarSel.value; });
+
+    const delBtn = devEl("button","dev-btn del","✕");
+    delBtn.title = "刪除此道具";
+    delBtn.onclick = () => {
+      if(!confirm("刪除「"+it.name+"」？")) return;
+      Object.values(SCENARIOS).forEach(scn => { if(scn.pool) scn.pool = scn.pool.filter(x=>x!==id); });
+      delete ITEMS[id]; devRender();
+    };
+
+    r1.append(iconEl, nameEl, rarSel, delBtn);
+    card.appendChild(r1);
+
+    /* ── 列 2：效果說明 ── */
+    const r2 = devEl("div","dev-ic-r2");
+    const effEl = document.createElement("input");
+    effEl.className = "dev-ic-eff"; effEl.value = it.effect; effEl.placeholder = "效果說明";
+    effEl.addEventListener("input", () => { it.effect = effEl.value; });
+    r2.appendChild(effEl);
+    card.appendChild(r2);
+
+    /* ── 列 3：數值欄位群 ── */
+    const r3 = devEl("div","dev-ic-r3");
+    function numField(label, field, min, max, step){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">${label}</span>`;
+      const inp = document.createElement("input");
+      inp.className = "dev-input dev-xs"; inp.type = "number";
+      inp.min = min; inp.max = max; if(step) inp.step = step;
+      inp.value = it[field];
+      inp.style.width = "62px";
+      inp.addEventListener("input", () => { it[field] = Number(inp.value); });
+      wrap.appendChild(inp); return wrap;
+    }
+    function selField(label, field, options){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">${label}</span>`;
+      const sel = document.createElement("select"); sel.className = "dev-select";
+      options.forEach(([val,txt]) => {
+        const o = document.createElement("option");
+        o.value = val ?? ""; o.textContent = txt;
+        if((it[field] ?? null) === (val ?? null)) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", () => { it[field] = sel.value || null; });
+      wrap.appendChild(sel); return wrap;
+    }
+    function checkField(){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">可帶出</span>`;
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!it.carry;
+      cb.style.cssText = "width:18px;height:18px;margin-top:4px;cursor:pointer;accent-color:var(--jade);";
+      cb.addEventListener("change", () => { it.carry = cb.checked; });
+      wrap.appendChild(cb); return wrap;
+    }
+
+    function dropField(){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">掉落率</span>`;
+      const row = devEl("div",""); row.style.cssText = "display:flex;align-items:center;gap:3px;";
+      const inp = document.createElement("input");
+      inp.className = "dev-input"; inp.type = "number";
+      inp.min = 0; inp.max = 100; inp.step = 0.1;
+      inp.value = +(it.drop * 100).toFixed(1);
+      inp.style.cssText = "width:64px;";
+      const pct = devEl("span",""); pct.style.cssText = "font-family:var(--mono);font-size:12px;color:var(--ink-dim);";
+      pct.textContent = "%";
+      inp.addEventListener("input", () => {
+        it.drop = Math.min(1, Math.max(0, Number(inp.value) / 100));
+      });
+      row.append(inp, pct); wrap.appendChild(row); return wrap;
+    }
+
+    r3.append(
+      numField("價值","value",0,9999),
+      selField("Tier","tier",[[1,"T1"],[2,"T2"]]),
+      checkField(),
+      dropField(),
+      selField("判定","check",[[null,"無"],...CHECK_TYPES.map(t=>[t,t])]),
+      numField("加成","bonus",0,10),
+      selField("裝備槽","slot",[[null,"無"],...SLOT_OPTS.map(s=>[s,SLOTS[s].label])])
+    );
+    card.appendChild(r3);
+
+    /* ── 列 4：副本分配 chip ── */
+    const r4 = devEl("div","dev-ic-r4");
+    r4.appendChild(devEl("div","dev-ic-pool-title","副本分配"));
+    const chips = devEl("div","dev-ic-chips");
+    const inSet = scenariosWithItem(id);
+    Object.entries(SCENARIOS).forEach(([sid, scn]) => {
+      const chip = document.createElement("button");
+      chip.className = "dev-scn-chip" + (inSet.has(sid) ? " on" : "");
+      chip.type = "button";
+      chip.textContent = `${scn.title}　T${scn.tier}`;
+      chip.title = inSet.has(sid) ? "點擊移除" : "點擊加入";
+      chip.onclick = () => {
+        const pool = SCENARIOS[sid].pool || (SCENARIOS[sid].pool = []);
+        if(pool.includes(id)){
+          SCENARIOS[sid].pool = pool.filter(x => x !== id);
+          chip.classList.remove("on"); chip.title = "點擊加入";
+        } else {
+          pool.push(id);
+          chip.classList.add("on"); chip.title = "點擊移除";
+        }
+      };
+      chips.appendChild(chip);
+    });
+    r4.appendChild(chips);
+    card.appendChild(r4);
+    return card;
+  }
+
+  const list = devEl("div","");
+  Object.entries(ITEMS).forEach(([id, it]) => list.appendChild(buildCard(id, it)));
+  sec.appendChild(list);
+
+  const addBtn = devEl("button","dev-btn add","＋ 新增道具");
+  addBtn.style.marginTop = "4px";
+  addBtn.onclick = () => {
+    const nid = "drop_"+Date.now();
+    ITEMS[nid] = {name:"新道具",effect:"描述",value:20,tier:1,carry:false,drop:0.4,check:"搜查",bonus:1,slot:"acc1",icon:"📦",rarity:"white"};
+    // 新增後直接在列表尾端插入卡片，不用整個重繪
+    list.appendChild(buildCard(nid, ITEMS[nid]));
+  };
+  sec.appendChild(addBtn);
+  body.appendChild(sec);
+
+  // 匯出區（即時同步）
+  const expSec1 = devEl("div","dev-section");
+  expSec1.style.marginTop = "24px";
+  expSec1.appendChild(devEl("div","dev-section-title","匯出 ITEMS"));
+  const ta1 = devEl("textarea","dev-export-area"); ta1.readOnly = true; ta1.style.height = "180px";
+  const refresh1 = () => { ta1.value = "const ITEMS = "+JSON.stringify(ITEMS, null, 2)+";"; };
+  refresh1();
+  sec.addEventListener("input",  refresh1);
+  sec.addEventListener("change", refresh1);
+  expSec1.appendChild(ta1);
+  const copyBtn1 = devEl("button","dev-btn copy","複製 ITEMS");
+  copyBtn1.onclick = () => {
+    refresh1();
+    const copy = () => { ta1.select(); document.execCommand("copy"); };
+    if(navigator.clipboard){ navigator.clipboard.writeText(ta1.value).catch(copy); } else copy();
+    copyBtn1.textContent = "✓ 已複製！";
+    setTimeout(() => copyBtn1.textContent = "複製 ITEMS", 2000);
+  };
+  expSec1.appendChild(copyBtn1);
+  body.appendChild(expSec1);
+}
+
+/* ── Tab 2：判定成功率試算 ── */
+function devTabProb(body){
+  // 現有背包加成摘要
+  const infoRow = devEl("div","dev-info-row");
+  CHECK_TYPES.forEach(t => {
+    const b = bonusFor(t);
+    const d = devEl("div");
+    d.innerHTML = `<span style="color:var(--brass)">${t}</span>　現有裝備加成：<span style="color:var(--jade)">+${b}</span>`;
+    infoRow.appendChild(d);
+  });
+  body.appendChild(infoRow);
+
+  // 說明
+  const desc = devEl("div","","");
+  desc.style.cssText = "font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-bottom:14px;line-height:1.9";
+  desc.innerHTML =
+    "成功條件：d20 + 裝備加成 ≥ DC　｜　成功率 = (21 − DC + 加成) ÷ 20，範圍 0–100%<br>"+
+    '<span style="color:var(--jade)">■</span> ≥70% 高機率　'+
+    '<span style="color:var(--brass)">■</span> 40–69% 中等風險　'+
+    '<span style="color:var(--rust)">■</span> &lt;40% 高風險';
+  body.appendChild(desc);
+
+  // 機率對照表 DC 8–20 × 加成 0–8
+  const bonusLevels = [0,1,2,3,4,5,6,7,8];
+  const dcRange     = [8,9,10,11,12,13,14,15,16,17,18,19,20];
+  const prob = (dc, b) => Math.max(0, Math.min(1, (21-dc+b)/20));
+
+  const wrap = devEl("div","prob-wrap");
+  const tbl  = devEl("table","prob-table");
+  const thead = document.createElement("thead");
+  const hrow  = document.createElement("tr");
+  hrow.innerHTML = "<th>DC \\ 加成</th>" + bonusLevels.map(b=>`<th>+${b}</th>`).join("");
+  thead.appendChild(hrow); tbl.appendChild(thead);
+
+  const tbody2 = document.createElement("tbody");
+  dcRange.forEach(dc => {
+    const tr = document.createElement("tr");
+    const dcTd = devEl("td","",`<span style="color:var(--brass);font-weight:600">DC ${dc}</span>`);
+    tr.appendChild(dcTd);
+    bonusLevels.forEach(b => {
+      const p = prob(dc, b);
+      const pct = Math.round(p*100);
+      const col = pct>=70 ? "var(--jade)" : pct>=40 ? "var(--brass)" : "var(--rust)";
+      const td = document.createElement("td");
+      td.innerHTML =
+        `<div class="prob-cell">`+
+        `<span style="color:${col}">${pct}%</span>`+
+        `<div class="prob-bar"><div class="prob-fill" style="width:${pct}%;background:${col}"></div></div>`+
+        `</div>`;
+      tr.appendChild(td);
+    });
+    tbody2.appendChild(tr);
+  });
+  tbl.appendChild(tbody2);
+  wrap.appendChild(tbl);
+  body.appendChild(wrap);
+}
+
+/* ── Tab 3：劇本分析 ── */
+function devTabScenarios(body){
+  Object.entries(SCENARIOS).forEach(([sid, scn]) => {
+    const box = devEl("div","dev-section");
+    box.style.border = "1px solid #2A353B";
+    box.style.borderRadius = "3px";
+    box.style.padding = "12px";
+
+    // 劇本標頭
+    const hdr2 = devEl("div");
+    hdr2.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px";
+    hdr2.innerHTML =
+      `<span style="font-family:var(--mono);color:var(--brass)">${scn.title}</span>`+
+      `<span style="font-family:var(--mono);font-size:11px;color:var(--ink-dim)">`+
+        `Tier ${scn.tier} · ${scn.win} · ${scn.turnLimit}回合 · 第${scn.steerAt??10}回合導向收尾`+
+        (scn.locked?` · <span style="color:#9a7fd0">🔒 ${scn.price}點解鎖</span>`:"")+
+      `</span>`;
+    box.appendChild(hdr2);
+
+    // 收集所有判定
+    const checks = [];
+    Object.entries(scn.nodes).forEach(([nid, node]) => {
+      if(!node.choices) return;
+      node.choices.forEach(c => {
+        if(!c.check) return;
+        const baseP = Math.round(Math.max(0,Math.min(1,(21-c.check.dc)/20))*100);
+        checks.push({ nid, text:c.text.slice(0,22)+(c.text.length>22?"…":""),
+          type:c.check.type, dc:c.check.dc, danger:c.danger||0,
+          reward:c.reward||0, baseP, suc:c.check.success, fail:c.check.fail });
+      });
+    });
+
+    if(!checks.length){
+      box.appendChild(devEl("div","","<span style='color:var(--ink-dim);font-size:12px'>此劇本無判定選項</span>"));
+    } else {
+      const tbl = devEl("table","dev-table");
+      tbl.style.fontSize = "12px";
+      tbl.innerHTML = `<thead><tr>
+        <th>節點</th><th>行動文字</th><th>需要道具</th><th>判定</th><th>DC</th>
+        <th>裸骰成功率</th><th>危險</th><th>成功獎勵</th><th>成功→</th><th>失敗→</th>
+      </tr></thead>`;
+      const tb = document.createElement("tbody");
+      checks.forEach(c => {
+        const col = c.baseP>=70?"var(--jade)":c.baseP>=40?"var(--brass)":"var(--rust)";
+        const dLabel = c.danger===3?"<span style='color:var(--rust)'>☠ 高危</span>":
+                       c.danger===2?"<span style='color:var(--brass)'>⚠ 中危</span>":"—";
+        const reqLabel = c.require
+          ? `<span style="color:#9a7fd0;font-family:var(--mono)">🎒 ${Array.isArray(c.require)?c.require.join(" & "):c.require}</span>`
+          : "—";
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          `<td style="font-family:var(--mono);color:var(--ink-dim)">${c.nid}</td>`+
+          `<td>${c.text}</td>`+
+          `<td>${reqLabel}</td>`+
+          `<td style="font-family:var(--mono);color:var(--brass)">${c.type}</td>`+
+          `<td style="font-family:var(--mono);font-weight:600">${c.dc}</td>`+
+          `<td>`+
+            `<div class="prob-cell" style="align-items:flex-start">`+
+            `<span style="color:${col};font-family:var(--mono)">${c.baseP}%</span>`+
+            `<div class="prob-bar" style="width:60px"><div class="prob-fill" style="width:${c.baseP}%;background:${col}"></div></div>`+
+            `</div></td>`+
+          `<td>${dLabel}</td>`+
+          `<td style="font-family:var(--mono);color:var(--jade)">${c.reward?"+"+c.reward+" 點":"—"}</td>`+
+          `<td style="font-family:var(--mono);font-size:11px;color:var(--jade)">${c.suc}</td>`+
+          `<td style="font-family:var(--mono);font-size:11px;color:var(--rust)">${c.fail}</td>`;
+        tb.appendChild(tr);
+      });
+
+      // 另外列出有 require 但無判定的純導向選項
+      const reqOnly = [];
+      Object.entries(scn.nodes).forEach(([nid, node]) => {
+        if(!node.choices) return;
+        node.choices.forEach(c => {
+          if(c.require && !c.check) reqOnly.push({nid, text:c.text.slice(0,22)+(c.text.length>22?"…":""), require:c.require, next:c.next||""});
+        });
+      });
+      if(reqOnly.length){
+        const sepRow = document.createElement("tr");
+        sepRow.innerHTML = `<td colspan="10" style="color:var(--ink-dim);font-size:11px;padding-top:8px;font-family:var(--mono)">── 道具限定選項（無判定）</td>`;
+        tb.appendChild(sepRow);
+        reqOnly.forEach(c => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            `<td style="font-family:var(--mono);color:var(--ink-dim)">${c.nid}</td>`+
+            `<td>${c.text}</td>`+
+            `<td><span style="color:#9a7fd0;font-family:var(--mono)">🎒 ${Array.isArray(c.require)?c.require.join(" & "):c.require}</span></td>`+
+            `<td colspan="6" style="color:var(--ink-dim)">→ ${c.next}</td>`+
+            `<td>—</td>`;
+          tb.appendChild(tr);
+        });
+      }
+
+      tbl.appendChild(tb);
+      box.appendChild(tbl);
+    }
+    body.appendChild(box);
+  });
+}
+
+/* ── Tab 4：匯出 ── */
+function devTabExport(body){
+  body.appendChild(devEl("div","dev-section-title","匯出修改後的資料"));
+  const desc = devEl("div");
+  desc.style.cssText = "color:var(--ink-dim);font-size:13px;margin-bottom:16px;line-height:1.8";
+  desc.textContent = "以下是你在面板裡做的所有修改（含新增/刪除）轉成的 JS 程式碼。複製後貼回 index.html 對應區塊即可固化。";
+  body.appendChild(desc);
+
+  [
+    { label:"SHOP_ITEMS", data:SHOP_ITEMS },
+    { label:"ITEMS", data:ITEMS },
+  ].forEach(({label, data}) => {
+    body.appendChild(devEl("div","dev-section-title", label));
+    const ta = devEl("textarea","dev-export-area");
+    ta.readOnly = true;
+    ta.value = "const "+label+" = "+JSON.stringify(data, null, 2)+";";
+    body.appendChild(ta);
+    const btn = devEl("button","dev-btn copy","複製 "+label);
+    btn.onclick = () => {
+      const copy = () => { ta.select(); document.execCommand("copy"); };
+      if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).catch(copy); }
+      else copy();
+      btn.textContent = "✓ 已複製！";
+      setTimeout(()=>btn.textContent="複製 "+label, 2000);
+    };
+    body.appendChild(btn);
+  });
+}
+
+/* ── Tab 5：成就 ── */
+function devTabAchievements(body){
+  const RAR_OPTS = Object.keys(RARITY_META);
+  const TYPE_OPTS = [["collect","蒐集"],["title","頭銜"],["points","點數"],["unlock","解鎖"]];
+
+  const sec = devEl("div","dev-section");
+  sec.appendChild(devEl("div","dev-section-title","成就列表 (ACHIEVEMENTS)"));
+
+  function buildAchCard(id, ach){
+    const card = devEl("div","dev-item-card");
+
+    // 列 1：圖示 ＋ 名稱 ＋ 稀有度 ＋ 解鎖狀態
+    const r1 = devEl("div","dev-ic-r1");
+    const iconEl = document.createElement("div");
+    iconEl.className = "dev-ic-icon"; iconEl.contentEditable = "true";
+    iconEl.textContent = ach.icon||"🏆";
+    iconEl.addEventListener("input", () => { ach.icon = iconEl.textContent.trim()||"🏆"; });
+    iconEl.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); iconEl.blur(); } });
+
+    const nameEl = document.createElement("input");
+    nameEl.className = "dev-ic-name"; nameEl.value = ach.name;
+    nameEl.addEventListener("input", () => { ach.name = nameEl.value; });
+
+    const rarSel = document.createElement("select"); rarSel.className = "dev-select";
+    RAR_OPTS.forEach(r => {
+      const o = document.createElement("option");
+      o.value = r; o.textContent = RARITY_META[r].label;
+      if((ach.rarity||"white")===r) o.selected = true;
+      rarSel.appendChild(o);
+    });
+    rarSel.addEventListener("change", () => { ach.rarity = rarSel.value; });
+
+    const lockBtn = devEl("button","dev-btn "+(unlockedAchievements.has(id)?"del":"add"),
+      unlockedAchievements.has(id)?"重置":"強制解鎖");
+    lockBtn.onclick = () => {
+      if(unlockedAchievements.has(id)){ unlockedAchievements.delete(id); saveState(); }
+      else { unlockAchievement(id); }
+      devRender();
+    };
+    r1.append(iconEl, nameEl, rarSel, lockBtn);
+    card.appendChild(r1);
+
+    // 列 2：說明
+    const effEl = document.createElement("input");
+    effEl.className = "dev-ic-eff"; effEl.style.width="100%";
+    effEl.value = ach.hint||"";
+    effEl.placeholder = "解鎖說明文字";
+    effEl.addEventListener("input", () => { ach.hint = effEl.value; });
+    card.appendChild(effEl);
+
+    // 列 3：屬性
+    const r3 = devEl("div","dev-ic-r3");
+
+    // 所屬劇本
+    const scnWrap = devEl("div","dev-ic-field");
+    scnWrap.innerHTML = `<span class="dev-ic-label">劇本</span>`;
+    const scnSel = document.createElement("select"); scnSel.className = "dev-select";
+    Object.entries(SCENARIOS).forEach(([sid,scn]) => {
+      const o = document.createElement("option");
+      o.value = sid; o.textContent = scn.title;
+      if(ach.scenario===sid) o.selected = true;
+      scnSel.appendChild(o);
+    });
+    scnSel.addEventListener("change", () => { ach.scenario = scnSel.value; });
+    scnWrap.appendChild(scnSel);
+
+    // 類型
+    const typeWrap = devEl("div","dev-ic-field");
+    typeWrap.innerHTML = `<span class="dev-ic-label">類型</span>`;
+    const typeSel = document.createElement("select"); typeSel.className = "dev-select";
+    TYPE_OPTS.forEach(([v,t]) => {
+      const o = document.createElement("option");
+      o.value = v; o.textContent = t;
+      if(ach.type===v) o.selected = true;
+      typeSel.appendChild(o);
+    });
+    typeSel.addEventListener("change", () => { ach.type = typeSel.value; });
+    typeWrap.appendChild(typeSel);
+
+    // 顯示/隱藏
+    const visWrap = devEl("div","dev-ic-field");
+    visWrap.innerHTML = `<span class="dev-ic-label">未解鎖可見</span>`;
+    const visCb = document.createElement("input"); visCb.type="checkbox"; visCb.checked=!!ach.visible;
+    visCb.style.cssText="width:18px;height:18px;margin-top:4px;cursor:pointer;accent-color:var(--jade);";
+    visCb.addEventListener("change", () => { ach.visible = visCb.checked; });
+    visWrap.appendChild(visCb);
+
+    r3.append(scnWrap, typeWrap, visWrap);
+    card.appendChild(r3);
+    return card;
+  }
+
+  const list = devEl("div","");
+  Object.entries(ACHIEVEMENTS).forEach(([id, ach]) => list.appendChild(buildAchCard(id, ach)));
+  sec.appendChild(list);
+
+  const addBtn = devEl("button","dev-btn add","＋ 新增成就");
+  addBtn.style.marginTop = "4px";
+  addBtn.onclick = () => {
+    const nid = "ach_"+Date.now();
+    ACHIEVEMENTS[nid] = { name:"新成就", hint:"", icon:"🏆", rarity:"white",
+      scenario: Object.keys(SCENARIOS)[0]||"", type:"collect", visible:false, reward:null };
+    list.appendChild(buildAchCard(nid, ACHIEVEMENTS[nid]));
+  };
+  sec.appendChild(addBtn);
+  body.appendChild(sec);
+
+  // 匯出區
+  const expSec = devEl("div","dev-section");
+  expSec.style.marginTop = "24px";
+  expSec.appendChild(devEl("div","dev-section-title","匯出 ACHIEVEMENTS"));
+  const expDesc = devEl("div","");
+  expDesc.style.cssText = "color:var(--ink-dim);font-size:13px;margin-bottom:12px;line-height:1.8";
+  expDesc.textContent = "複製下方程式碼，貼回 index.html 的 ACHIEVEMENTS 定義區塊即可固化。";
+  expSec.appendChild(expDesc);
+  const ta = devEl("textarea","dev-export-area");
+  ta.readOnly = true;
+  ta.style.height = "200px";
+  const refresh = () => { ta.value = "const ACHIEVEMENTS = "+JSON.stringify(ACHIEVEMENTS, null, 2)+";"; };
+  refresh();
+  // 監聽成就列表區的所有欄位變動，即時更新匯出內容
+  sec.addEventListener("input",  refresh);
+  sec.addEventListener("change", refresh);
+  expSec.appendChild(ta);
+  const copyBtn = devEl("button","dev-btn copy","複製 ACHIEVEMENTS");
+  copyBtn.onclick = () => {
+    refresh();
+    const copy = () => { ta.select(); document.execCommand("copy"); };
+    if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).catch(copy); } else copy();
+    copyBtn.textContent = "✓ 已複製！";
+    setTimeout(() => copyBtn.textContent = "複製 ACHIEVEMENTS", 2000);
+  };
+  expSec.appendChild(copyBtn);
+  body.appendChild(expSec);
+}
+
+/* ── Tab 6：記事本 ── */
+const NOTEPAD_KEY = "mugen_notepad";
+function devTabNotepad(body){
+  body.appendChild(devEl("div","dev-section-title","記事本"));
+
+  const desc = devEl("div","");
+  desc.style.cssText = "color:var(--ink-dim);font-size:12px;margin-bottom:12px;line-height:1.7";
+  desc.textContent = "內容自動存入 localStorage，重新整理後不會消失。選取文字後點標記按鈕可上色。";
+  body.appendChild(desc);
+
+  // 工具列
+  const toolbar = devEl("div","notepad-toolbar");
+
+  function markBtn(label, cls, tag, style){
+    const b = devEl("button","notepad-btn "+cls, label);
+    b.onmousedown = e => {
+      e.preventDefault();
+      if(tag === "b"){
+        document.execCommand("bold");
+      } else {
+        document.execCommand("insertHTML", false,
+          "<span style='"+style+"'>"+
+          (window.getSelection().toString() || "　")+
+          "</span>");
+      }
+      editor.focus();
+      save();
+    };
+    return b;
+  }
+
+  toolbar.appendChild(markBtn("B 粗體",   "bold-b",  "b",    ""));
+  toolbar.appendChild(markBtn("▌ 黃標",  "mark-y",  "mark", "background:#5a4220;color:#f0c97a;border-radius:2px;padding:0 2px;"));
+  toolbar.appendChild(markBtn("▌ 綠標",  "mark-g",  "mark", "background:#1a3d25;color:#7fd49a;border-radius:2px;padding:0 2px;"));
+  toolbar.appendChild(markBtn("▌ 紅標",  "mark-r",  "mark", "background:#3d1515;color:#e87070;border-radius:2px;padding:0 2px;"));
+
+  const clrBtn = devEl("button","notepad-btn","✕ 清除格式");
+  clrBtn.onmousedown = e => {
+    e.preventDefault();
+    document.execCommand("removeFormat");
+    editor.focus(); save();
+  };
+  toolbar.appendChild(clrBtn);
+
+  const clearAllBtn = devEl("button","notepad-btn","🗑 清空");
+  clearAllBtn.onmousedown = e => {
+    e.preventDefault();
+    if(!confirm("確定要清空記事本？")) return;
+    editor.innerHTML = "";
+    localStorage.removeItem(NOTEPAD_KEY);
+    savedLabel.textContent = "已清空";
+    editor.focus();
+  };
+  toolbar.appendChild(clearAllBtn);
+
+  body.appendChild(toolbar);
+
+  // 編輯區
+  const editor = devEl("div","notepad-editor");
+  editor.contentEditable = "true";
+  editor.spellcheck = false;
+  const saved = localStorage.getItem(NOTEPAD_KEY);
+  if(saved) editor.innerHTML = saved;
+
+  function save(){
+    localStorage.setItem(NOTEPAD_KEY, editor.innerHTML);
+    savedLabel.textContent = "已自動儲存 " + new Date().toLocaleTimeString("zh-Hant");
+  }
+  editor.addEventListener("input", save);
+  body.appendChild(editor);
+
+  // 底部：儲存狀態 ＋ 複製匯出
+  const footer = devEl("div","notepad-footer");
+  const savedLabel = devEl("span","notepad-saved", saved ? "已載入上次內容" : "尚未儲存");
+  footer.appendChild(savedLabel);
+
+  const copyBtn = devEl("button","dev-btn copy","複製純文字");
+  copyBtn.onclick = () => {
+    const text = editor.innerText;
+    const copy = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove();
+    };
+    if(navigator.clipboard){ navigator.clipboard.writeText(text).catch(copy); } else copy();
+    copyBtn.textContent = "✓ 已複製！";
+    setTimeout(() => copyBtn.textContent = "複製純文字", 2000);
+  };
+  footer.appendChild(copyBtn);
+
+  const copyHtmlBtn = devEl("button","dev-btn copy","複製 HTML");
+  copyHtmlBtn.onclick = () => {
+    const html = editor.innerHTML;
+    const copy = () => {
+      const ta = document.createElement("textarea");
+      ta.value = html; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove();
+    };
+    if(navigator.clipboard){ navigator.clipboard.writeText(html).catch(copy); } else copy();
+    copyHtmlBtn.textContent = "✓ 已複製！";
+    setTimeout(() => copyHtmlBtn.textContent = "複製 HTML", 2000);
+  };
+  footer.appendChild(copyHtmlBtn);
+
+  body.appendChild(footer);
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+init();
+document.getElementById("dev-fab-btn").onclick = devToggle;
+</script>
+</body>
+</html>
