@@ -6,7 +6,7 @@
 <title>無限流 · 副本</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans:ital,wght@0,400&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0E1417; --panel:#151C20; --panel2:#1B2429; --line:#2A353B;
@@ -34,11 +34,11 @@
   .sys-top{
     display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--mono); font-size:12px; letter-spacing:.12em;
-    color:var(--brass); text-transform:uppercase; margin-bottom:16px;
+    color:var(--brass); margin-bottom:16px;
   }
   .sys-top .cursor{ animation:blink 1.1s steps(1) infinite; }
-  .sys-top .points{ color:var(--ink-dim); }
-  .sys-top .points b{ color:var(--brass); font-weight:600; }
+  .sys-top .points{ color:var(--brass); font-family:var(--mono); font-size:13px; }
+  .sys-top .points b{ font-weight:600; }
   @keyframes blink{50%{opacity:0;}}
 
   h2.screen-title{
@@ -527,7 +527,7 @@
 <div class="stage">
   <div class="sys-top">
     <span>記憶狹間<span class="cursor">▌</span></span>
-    <span class="points">點數 <b id="points">0</b></span>
+    <span class="points"><b id="points">0</b> ω</span>
   </div>
   <div id="view"></div>
 </div>
@@ -1074,7 +1074,7 @@ function renderAchievementPopup(){
     `<div style="margin-bottom:10px">${rarBadge(ach.rarity)}</div>`+
     `<div class="ach-popup-hint">${ach.hint||""}</div>`;
   if(ach.reward?.points)
-    box.innerHTML += `<div style="font-family:var(--mono);font-size:13px;color:var(--jade);margin-bottom:14px">+${ach.reward.points} 點</div>`;
+    box.innerHTML += `<div style="font-family:var(--mono);font-size:13px;color:var(--jade);margin-bottom:14px">+${ach.reward.points} ω</div>`;
   if(ach.reward?.title)
     box.innerHTML += `<div style="font-family:var(--mono);font-size:12px;color:var(--brass);margin-bottom:14px">獲得頭銜：${ach.reward.title}</div>`;
   const btn = document.createElement("button");
@@ -1254,7 +1254,7 @@ function renderEquipScreen(v){
 
 function renderHub(v){
   v.appendChild(el("h2","screen-title","記憶狹間"));
-  v.appendChild(el("p","lede","選擇一層副本進入。清掉副本可累積點數；高層更難、掉落更值錢。"));
+  v.appendChild(el("p","lede","選擇一層副本進入。清掉副本可累積 ω；高層更難、掉落更值錢。"));
 
   // 已裝備道具快覽
   const equipped_items = Object.values(equipped).filter(Boolean);
@@ -1285,7 +1285,7 @@ function renderHub(v){
   t2.onclick = () => enterTier(2); acts.appendChild(t2);
   const eqBtn = mkAct("裝備管理", "▸");
   eqBtn.onclick = () => { screen = "equip"; render(); }; acts.appendChild(eqBtn);
-  const shopBtn = mkAct("前往主神商店", "▸");
+  const shopBtn = mkAct("前往記憶迴廊", "▸");
   shopBtn.onclick = () => { screen = "shop"; render(); }; acts.appendChild(shopBtn);
   const achCount = [...unlockedAchievements].filter(id => ACHIEVEMENTS[id]).length;
   const achBtn = mkAct(`成就系統　${achCount}／${Object.keys(ACHIEVEMENTS).length}`, "▸");
@@ -1301,8 +1301,8 @@ function renderHub(v){
 }
 
 function renderShop(v){
-  v.appendChild(el("h2","screen-title","主神商店"));
-  v.appendChild(el("p","lede","購買可在副本中加成判定的裝備、解鎖新劇本，或出售背包中的物品換取點數。"));
+  v.appendChild(el("h2","screen-title","記憶迴廊"));
+  v.appendChild(el("p","lede","購買可在副本中加成判定的裝備、解鎖新劇本，或出售背包中的物品換取 ω。"));
 
   // 出售道具
   const sellPanel = el("div","panel");
@@ -1315,7 +1315,7 @@ function renderShop(v){
       row.appendChild(el("span","name",
         it.name + (it.carry ? '<span class="carry">可帶出</span>' : '') +
         ' <span class="eff">'+it.effect+'</span>'));
-      const btn = el("button","shop-btn sell","出售 +"+it.value+" 點");
+      const btn = el("button","shop-btn sell","出售 +"+it.value+" ω");
       btn.onclick = () => { currency += it.value; removeFromInventory(it); saveState(); render(); };
       row.appendChild(btn);
       sellPanel.appendChild(row);
@@ -1335,7 +1335,7 @@ function renderShop(v){
     if(owned){
       row.appendChild(el("span","tag-owned","已持有"));
     } else {
-      const btn = el("button","shop-btn buy", def.price+" 點 購買");
+      const btn = el("button","shop-btn buy", def.price+" ω 購買");
       btn.disabled = currency < def.price;
       btn.onclick = () => {
         currency -= def.price;
@@ -1365,7 +1365,7 @@ function renderShop(v){
       if(isUnlocked){
         row.appendChild(el("span","tag-owned","可遊玩"));
       } else {
-        const btn = el("button","shop-btn unlock", s.price+" 點 解鎖");
+        const btn = el("button","shop-btn unlock", s.price+" ω 解鎖");
         btn.disabled = currency < s.price;
         btn.onclick = () => { currency -= s.price; unlockedScenarios.add(id); saveState(); render(); };
         row.appendChild(btn);
@@ -1391,7 +1391,7 @@ function renderScenario(v, animate){
   const obj = el("div","objective");
   const winLabel = {survive:"SURVIVE 生存",escape:"ESCAPE 逃出",objective:"OBJECTIVE 任務"}[curScn.win];
   obj.appendChild(el("span","obj-text", curScn.objective + '<span class="tag">'+winLabel+'</span>'));
-  obj.appendChild(el("span","turn", '回合 <b>'+turn+'</b> / '+curScn.turnLimit));
+  obj.appendChild(el("span","turn", '回合 <b>'+turn+'</b> / '+(curScn.turnLimit === 99 ? '??' : curScn.turnLimit)));
   v.appendChild(obj);
 
   const scene = el("div","scene" + (animate ? " reveal" : "")); scene.textContent = node.scene;
@@ -1405,7 +1405,7 @@ function renderScenario(v, animate){
       n.innerHTML += '<div class="roll">🎲 '+c.type+'判定：擲出 '+c.roll+(c.bonus?' + 加成 '+c.bonus:'')+' = '+c.total
         +'（需 ≥ '+c.dc+'）→ <b class="'+(c.ok?'ok':'no')+'">'+(c.ok?'成功':'失敗')+'</b></div>';
     }
-    if(pendingReward) n.innerHTML += '<div class="gain">⚡ 高危成功獎勵 +'+pendingReward+' 點</div>';
+    if(pendingReward) n.innerHTML += '<div class="gain">⚡ 高危成功獎勵 +'+pendingReward+' ω</div>';
     if(pendingLoot.length) n.innerHTML += '<div class="gain">🎁 獲得：'+pendingLoot.join("、")+'</div>';
     v.appendChild(n);
   }
@@ -1433,8 +1433,8 @@ function renderEnding(v){
 
   const n = el("div","notice");
   if(ending.kind === "cleared"){
-    n.innerHTML += '<div class="gain">過關獎勵 +'+ending.base+' 點</div>';
-    if(ending.sold)     n.innerHTML += '<div class="gain">變賣戰利品（'+ending.consumed.join("、")+'）+'+ending.sold+' 點</div>';
+    n.innerHTML += '<div class="gain">過關獎勵 +'+ending.base+' ω</div>';
+    if(ending.sold)     n.innerHTML += '<div class="gain">變賣戰利品（'+ending.consumed.join("、")+'）+'+ending.sold+' ω</div>';
     if(ending.carried.length) n.innerHTML += '<div class="gain">💎 帶出副本：'+ending.carried.join("、")+'</div>';
     if(!ending.sold && !ending.carried.length) n.innerHTML += '<div class="roll">這趟沒撿到東西。</div>';
   } else {
@@ -1457,7 +1457,7 @@ function renderEnding(v){
         n.innerHTML += '<div class="loss">💔 「'+name+'」損壞，化為回憶碎片...</div>';
       });
     }
-    n.innerHTML += '<div class="roll">（點數與帶入副本前的舊物品保留。）</div>';
+    n.innerHTML += '<div class="roll">（ω 與帶入副本前的舊物品保留。）</div>';
   }
   v.appendChild(n);
 
@@ -1529,7 +1529,7 @@ function mkAct(text, mark, opt, costObj, extra){
   if(opt && opt.danger === 2) b.appendChild(el("span","pill warn","⚠ 中危"));
   if(opt && opt.danger === 3) b.appendChild(el("span","pill high","☠ 高危"));
   const cost = costObj && costObj.cost;
-  if(cost) b.appendChild(el("span","pill cost","-"+cost+" 點"));
+  if(cost) b.appendChild(el("span","pill cost","-"+cost+" ω"));
   return b;
 }
 
@@ -1635,12 +1635,12 @@ function devRender(){
   // 點數調整列（常駐）
   const pointsRow = devEl("div","");
   pointsRow.style.cssText = "display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #1e2a30;background:#0d1317;";
-  const pointsLabel = devEl("span","","快速點數");
+  const pointsLabel = devEl("span","","快速 ω");
   pointsLabel.style.cssText = "font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.08em;white-space:nowrap;";
   pointsRow.appendChild(pointsLabel);
   [10, 100, 1000].forEach(amt => {
     const btn = devEl("button","dev-btn add",`+${amt}`);
-    btn.onclick = () => { currency += amt; saveState(); $("points").textContent = currency; };
+    btn.onclick = () => { currency += amt; saveState(); render(); };
     pointsRow.appendChild(btn);
   });
   panel.appendChild(pointsRow);
@@ -1723,7 +1723,7 @@ function devTabShop(body){
       inp.className = "dev-input"; inp.type = "number";
       inp.min = min; inp.max = max; inp.value = it[field];
       inp.style.width = "68px";
-      inp.addEventListener("input", () => { it[field] = Number(inp.value); sellbackEl.textContent = Math.floor(it.price*0.6)+" 點"; });
+      inp.addEventListener("input", () => { it[field] = Number(inp.value); sellbackEl.textContent = Math.floor(it.price*0.6)+" ω"; });
       wrap.appendChild(inp); return wrap;
     }
     function selField(label, field, options){
@@ -1745,7 +1745,7 @@ function devTabShop(body){
     sellWrap.innerHTML = `<span class="dev-ic-label">回收</span>`;
     const sellbackEl = devEl("div","");
     sellbackEl.style.cssText = "font-family:var(--mono);font-size:12px;color:var(--ink-dim);padding-top:5px;";
-    sellbackEl.textContent = Math.floor(it.price*0.6)+" 點";
+    sellbackEl.textContent = Math.floor(it.price*0.6)+" ω";
     sellWrap.appendChild(sellbackEl);
 
     r3.append(
@@ -2055,7 +2055,7 @@ function devTabScenarios(body){
       `<span style="font-family:var(--mono);color:var(--brass)">${scn.title}</span>`+
       `<span style="font-family:var(--mono);font-size:11px;color:var(--ink-dim)">`+
         `Tier ${scn.tier} · ${scn.win} · ${scn.turnLimit}回合 · 第${scn.steerAt??10}回合導向收尾`+
-        (scn.locked?` · <span style="color:#9a7fd0">🔒 ${scn.price}點解鎖</span>`:"")+
+        (scn.locked?` · <span style="color:#9a7fd0">🔒 ${scn.price} ω 解鎖</span>`:"")+
       `</span>`;
     box.appendChild(hdr2);
 
@@ -2102,7 +2102,7 @@ function devTabScenarios(body){
             `<div class="prob-bar" style="width:60px"><div class="prob-fill" style="width:${c.baseP}%;background:${col}"></div></div>`+
             `</div></td>`+
           `<td>${dLabel}</td>`+
-          `<td style="font-family:var(--mono);color:var(--jade)">${c.reward?"+"+c.reward+" 點":"—"}</td>`+
+          `<td style="font-family:var(--mono);color:var(--jade)">${c.reward?"+"+c.reward+" ω":"—"}</td>`+
           `<td style="font-family:var(--mono);font-size:11px;color:var(--jade)">${c.suc}</td>`+
           `<td style="font-family:var(--mono);font-size:11px;color:var(--rust)">${c.fail}</td>`;
         tb.appendChild(tr);

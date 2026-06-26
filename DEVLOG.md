@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-06-26 — 建立本機 git 並與 GitHub 同步
+
+狀態：本機已是 git repository，與 GitHub（https://charles0148.github.io/-code/）完全同步，14 個檔案全部納入版本控制。
+
+做了什麼：
+- 確認專案目錄不是 git repo，執行 `git init`
+- 建立 `.gitignore`（排除 .DS_Store、Thumbs.db、.vscode/、settings.local.json）
+- 將所有專案檔案（index.html、scenarios/、CLAUDE.md、DEVLOG.md、FIXLOG.md、.claude/skills/、.claude/commands/、.gitignore）做第一次 commit
+- 連上 GitHub remote（https://github.com/Charles0148/-code.git），fetch 後確認兩邊 index.html 與 scenarios/ 內容一致
+- `git reset --hard origin/main` 以 GitHub 為基礎，CLAUDE.md 等本機專屬檔案被意外刪除，從舊 commit（8b74bfc）以 `git checkout` 救回
+- commit 救回的檔案並推上 GitHub，同步完成
+- 以 `git ls-files` 確認全部 14 個檔案在位
+
+技術決策：
+- 以 GitHub 為歷史基礎（reset --hard），而非 merge --allow-unrelated-histories ← 使用者明確要求以 GitHub 版本為準
+
+下一步：
+- 日常改動：`git add -A` → `git commit -m "說明"` → `git push`
+- 觀察 /handoff 的 git 指令在本機 repo 初始化後是否正常運作
+
+---
+
 ## 2026-06-26 — 審查並修正 handoff skill 的 git 語法
 
 狀態：SKILL.md 已修正，handoff 流程可正常觸發並取得真實 repo 狀態。
