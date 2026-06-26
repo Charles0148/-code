@@ -187,6 +187,14 @@ SCENARIOS["id"] = {
 - **隱含 carry:false**（待辦）：目前 `internal:true` 的離場清除依賴作者手動加 `carry:false`，此前提未被引擎強制。建議引擎將 `internal:true` 自動視同 `carry:false`，使「隱形標記絕不滲入永久背包」成為引擎保證，而非作者慣例；可加開發期警告：偵測到 `internal:true` 卻未含 `carry:false` 時提示。
 - **帶出／賣錢防護**（待辦）：carry-out／賣錢系統上線時，於 `resolveEnd` 補上對 `internal` 的明確排除，與上一條一併處理。
 
+### 回合數哨兵顯示
+
+當 `scenario.turnLimit === 99` 時，副本內右上角的回合計數器分母渲染為 `??`，分子照常累加（顯示 `1 / ??`）。
+
+- 引擎只認哨兵值 99，不認劇本名稱或任何其他欄位。
+- 內部上限邏輯不變，只影響顯示層。
+- 任何 `turnLimit: 99` 的副本自動套用此規則，無需額外設定。
+
 ---
 
 ## 6. 擴充機制：WINMODE_HOOKS

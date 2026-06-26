@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-06-26 — 命名定案、ω 單位全面替換、三項修復
+
+狀態：三項 bug 修復完成，命名全面更新，GitHub Pages（master 分支）已同步。
+
+做了什麼：
+- Dev 加點 handler 改呼叫 render()，消除花費邏輯雙真相來源
+- app 更名「記憶狹間」、主神商店更名「記憶迴廊」
+- 點數單位全面替換為 ω（12 處），涵蓋 HUD、商店按鈕、結算、Dev 面板
+- 修正 .sys-top 的 text-transform:uppercase 導致 ω 渲染成 Ω 的根因，移除該規則（.sys-top 內無任何元素真正依賴 uppercase）
+- 回合數哨兵：turnLimit === 99 時分母渲染為 ??，通用引擎規則，非副本特例
+
+技術決策：
+- text-transform 選「移除來源規則」而非「在 ω span 加覆寫」← 無任何元素依賴，移除更乾淨，少一層未來會咬人的覆寫
+- ω 渲染問題診斷過程：先懷疑字型 → 換字型無效 → 發現 CSS text-transform:uppercase 才是根因；正確診斷順序已記入 DESIGNLOG
+
+下一步：
+- 開始設計下一個 scenario
+- 若新副本用到記憶序列，requireMemory 實作將作為前置需求提出
+
+---
+
 ## 2026-06-26 — 建立本機 git 並與 GitHub 同步
 
 狀態：本機已是 git repository，與 GitHub（https://charles0148.github.io/-code/）完全同步，14 個檔案全部納入版本控制。
