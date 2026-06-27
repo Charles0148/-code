@@ -2,6 +2,86 @@
 
 ---
 
+## 2026-06-27 — resolveEnd 補上 internal 排除；作者透過 Dev 調整球棒數值
+
+狀態：internal 道具不再出現在任何面向玩家的結算清單；CLAUDE.md 引擎能力契約對應更新。
+
+做了什麼：
+- resolveEnd 通關、強制退出、一般失敗三個迴圈，各加一行 `if(it.internal){ removeFromInventory(it); continue; }`，靜默清除、不列入任何結算清單
+- 作者透過 Dev 面板微調三顆球棒數值後匯出貼回，ITEMS 格式同時從單行轉為多行 JSON：baguette_bat（value 60→180、rarity blue→red）；baguette_bat_echo（bonus 3→1）；baguette_bat_plain（bonus 3→2、rarity green→blue）
+
+技術決策：
+- 修復只動顯示層（push 前 continue），清除行為不變 ← shop_intact 被清除是正確的，錯的是它被顯示，兩者完全獨立
+
+下一步：
+- 作者本機驗收全六條 bakery 路徑
+- 擴充副本數量（目前 6 個，目標 10+）
+
+---
+
+## 2026-06-27 — bakery 記憶球棒三道具分流
+
+狀態：bakery_01 記憶武器拆為三顆，各結局路徑各自授予正確版本。
+
+做了什麼：
+- 新增 ITEMS：baguette_bat_echo（會說話的法國麵包，carry:false，副本內武器）、baguette_bat_plain（法國麵包，carry:true，memoryPower:true，普通帶出版）
+- bakery_01 node_fight1：改授予 baguette_bat_echo（echo 版，離場必清）
+- bakery_01 node_normal_end：新增 grant baguette_bat_plain（普通結局帶出普通版）
+- bakery_01 node_end_true：新增 grant baguette_bat_plain（一般真結局帶出普通版）
+- bakery_01 node_hidden_9：移除 end，改為 choices 導向 node_baguette_reward
+- 新增 node_baguette_reward：grant baguette_bat（特別版），此處跳道具彈窗揭露 B 段效果，再導向 node_hidden_final
+- 新增 node_hidden_final：end:"cleared"，隱藏記憶真結局收尾
+
+技術決策：
+- 揭露彈窗必須在 resolveEnd 的前一節點授予（node_baguette_reward），不能與 end 同節點 ← 引擎在 resolveEnd 當下會清空道具彈窗
+- 三顆球棒 name 全部不同，引擎以 name 認同一性，無衝突風險
+- 失敗路徑從未授予 carry:true 道具，帶出機率結構性為 0，無需額外防護
+- 未新增任何引擎機制，全在現有 grant / carry / require 能力內
+
+下一步：
+- 作者在本機用 Live Server 驗收六條路徑
+- /itemcheck 確認三顆球棒 name 不撞車、無幽靈
+
+---
+
+## 2026-06-27 — Dev 道具卡片新增進階旗標欄位
+
+狀態：Dev 面板道具卡片補齊 memoryPower／quest／internal／finalBonus 四欄位，並加上授予來源唯讀標示。
+
+做了什麼：
+- buildCard 新增「進階旗標」列（r3b），含四個控制項：記憶武器（memoryPower）、任務道具（quest）、內部標記（internal）均為 checkbox；存活加成（finalBonus）為數值框
+- 寫回時保持 ITEMS 精簡：取消勾選 / 值為 0 時 delete 欄位，而非寫成 false / 0
+- 新增授予來源唯讀標示：掃描 SCENARIOS 各節點的 node.grant 與 choice.grant，顯示「授予於：副本名 / 節點 id」
+- 刷新綁定沿用既有 sec 上的 input + change 冒泡，無需額外接線
+- 視覺沿用既有 dev-ic-r4 / dev-ic-pool-title / dev-ic-field / dev-ic-label class，dashed border-top 分隔，不引入新樣式
+
+技術決策：
+- r3b 直接沿用 dev-ic-r4 class ← 分隔線樣式與副本分配一致，無需新增 CSS
+- 授予來源僅唯讀顯示，不提供編輯（grant 屬劇本邏輯，不在 Dev 道具面板修改）
+
+下一步：
+- 用 Dev 面板驗收：baguette_bat 的記憶武器應勾選、shop_intact 的內部標記應勾選、aquarium 道具的存活加成應顯示正確數值
+
+---
+
+## 2026-06-27 — 新增 /itemcheck 道具稽核機能
+
+狀態：dev-time 稽核工具上線，可手動比對 ITEMS 定義與 scenarios 引用。
+
+做了什麼：
+- 新增 tools/item_audit.js：掃描 ITEMS / SHOP_ITEMS 定義，比對 scenarios/*.js 的 pool / grant / require / choice.grant 引用，回報幽靈 id、name 撞車、重複鍵、internal 未 carry:false 等問題；退出碼 0 = 乾淨，1 = 有需處理問題
+- 新增 .claude/skills/itemcheck/SKILL.md：/itemcheck slash command，跑腳本並轉述結果給作者
+
+技術決策：
+- 腳本用 eval / new Function 載入自家劇本與 ITEMS 區塊 ← dev-time 工具只讀信任的原始碼，引入完整 JS parser 屬過度設計
+- 不動引擎邏輯與引擎能力契約，純 dev-time 工具層新增
+
+下一步：
+- 每次新增道具後執行 /itemcheck 確認乾淨
+- 擴充副本數量（目前 6 個，目標 10+）
+
+---
+
 ## 2026-06-26 — 命名定案、ω 單位全面替換、三項修復
 
 狀態：三項 bug 修復完成，命名全面更新，GitHub Pages（master 分支）已同步。

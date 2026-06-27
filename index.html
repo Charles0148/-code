@@ -580,26 +580,252 @@ const ACHIEVEMENTS = {
 
 // --- 物品池（以 id 為鍵）。slot=裝備槽, icon=顯示圖示 ----------------------
 const ITEMS = {
-  flashlight:{ name:"手電筒",       effect:"照穿黑暗，搜查 +2",            value:30,  tier:1, carry:false, drop:0.70, check:"搜查", bonus:2, slot:"weapon", icon:"🔦", rarity:"green"  },
-  scalpel:   { name:"生鏽手術刀",   effect:"勉強能割劈，蠻力 +2",          value:20,  tier:1, carry:false, drop:0.40, check:"蠻力", bonus:2, slot:"weapon", icon:"🔪", rarity:"green"  },
-  candle:    { name:"半截蠟燭",     effect:"微光，搜查 +1",                value:10,  tier:1, carry:false, drop:0.70, check:"搜查", bonus:1, slot:"acc1",   icon:"🕯️", rarity:"white"  },
-  key:       { name:"護理長的鑰匙", effect:"也許能開某道門",               value:40,  tier:1, carry:false, drop:0.50, check:null,   bonus:0, slot:"acc2",   icon:"🗝️", rarity:"green"  },
-  amulet:    { name:"褪色護身符",   effect:"【可帶出】面對超自然，膽識 +3", value:80,  tier:1, carry:true,  drop:0.10, check:"膽識", bonus:3, slot:"amulet", icon:"🧿", rarity:"yellow" },
-  diveknife: { name:"潛水刀",       effect:"水下破壞，蠻力 +3",            value:35,  tier:2, carry:false, drop:0.50, check:"蠻力", bonus:3, slot:"weapon", icon:"🗡️", rarity:"blue"   },
-  compass:   { name:"船長的羅盤",   effect:"【可帶出】脫困時，敏捷 +2",    value:120, tier:2, carry:true,  drop:0.03, check:"敏捷", bonus:2, slot:"acc1",   icon:"🧭", rarity:"yellow" },
-  // ── aquarium 專屬道具（finalBonus 用於最終存活判定，不進裝備系統）──
-  rusty_fish_knife: { name:"生鏽的殺魚刀",   effect:"最終存活判定 +20%", value:40,  tier:1, carry:false, drop:0.30, check:null, bonus:0, slot:null, icon:"🔪", rarity:"blue",   finalBonus:20 },
-  eye_hook:         { name:"勾著眼珠的魚鉤", effect:"最終存活判定 +10%", value:25,  tier:1, carry:false, drop:0.35, check:null, bonus:0, slot:null, icon:"🪝", rarity:"green",  finalBonus:10 },
-  humanface_fish:   { name:"長著人臉的魚",   effect:"最終存活判定 +50%", value:150, tier:1, carry:true,  drop:0.001,check:null, bonus:0, slot:null, icon:"🐟", rarity:"yellow", finalBonus:50 },
-  // ── bakery 專屬道具（grant 授予，drop:0 不進隨機掉落池）──
-  baguette_bat: { name:"可以打棒球的法國麵包", effect:"夏未留下的、凝成球棒的記憶。蘊含『回憶的力量』，在某些需要『想起什麼』的副本，或許能跨越時空幫上一把。", value:60,  tier:1, carry:true,  drop:0, check:"蠻力", bonus:3, slot:"weapon", icon:"🥖", rarity:"blue",  memoryPower:true },
-  frag_1:       { name:"記憶碎片-1", effect:"一張照片：瘦小的背影把法國麵包扛在肩上，像蓄勢待發的打者。",                                                           value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"white", quest:true },
-  frag_2:       { name:"記憶碎片-2", effect:"二樓皮箱裡的舊日記：生日蛋糕、紅茶與法國麵包、開麵包店的夢、那頓沒赴成的晚餐。",                                       value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"white", quest:true },
-  frag_3:       { name:"記憶碎片-3", effect:"事故那天的全部：口袋裡的小盒子、過馬路要看車、最後那句『我還沒答應你耶』。最痛的一塊。",                               value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🧩", rarity:"green", quest:true },
-  old_baseball: { name:"舊棒球",     effect:"皮箱裡悄悄多出的棒球，握著就發燙。隱藏結局的鑰匙之一。",                                                               value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"⚾", rarity:"white", quest:true },
-  shop_intact:  { name:"完好的麵包店", effect:"（內部標記：這片記憶的場景沒有被破壞）",                                                                             value:0, tier:1, carry:false, drop:0, check:null, bonus:0, slot:null, icon:"🏠", rarity:"white", quest:true, internal:true },
+  "flashlight": {
+    "name": "手電筒",
+    "effect": "照穿黑暗，搜查 +2",
+    "value": 30,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.7,
+    "check": "搜查",
+    "bonus": 2,
+    "slot": "weapon",
+    "icon": "🔦",
+    "rarity": "green"
+  },
+  "scalpel": {
+    "name": "生鏽手術刀",
+    "effect": "勉強能割劈，蠻力 +2",
+    "value": 20,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.4,
+    "check": "蠻力",
+    "bonus": 2,
+    "slot": "weapon",
+    "icon": "🔪",
+    "rarity": "green"
+  },
+  "candle": {
+    "name": "半截蠟燭",
+    "effect": "微光，搜查 +1",
+    "value": 10,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.7,
+    "check": "搜查",
+    "bonus": 1,
+    "slot": "acc1",
+    "icon": "🕯️",
+    "rarity": "white"
+  },
+  "key": {
+    "name": "護理長的鑰匙",
+    "effect": "也許能開某道門",
+    "value": 40,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.5,
+    "check": null,
+    "bonus": 0,
+    "slot": "acc2",
+    "icon": "🗝️",
+    "rarity": "green"
+  },
+  "amulet": {
+    "name": "褪色護身符",
+    "effect": "【可帶出】面對超自然，膽識 +3",
+    "value": 80,
+    "tier": 1,
+    "carry": true,
+    "drop": 0.1,
+    "check": "膽識",
+    "bonus": 3,
+    "slot": "amulet",
+    "icon": "🧿",
+    "rarity": "yellow"
+  },
+  "diveknife": {
+    "name": "潛水刀",
+    "effect": "水下破壞，蠻力 +3",
+    "value": 35,
+    "tier": 2,
+    "carry": false,
+    "drop": 0.5,
+    "check": "蠻力",
+    "bonus": 3,
+    "slot": "weapon",
+    "icon": "🗡️",
+    "rarity": "blue"
+  },
+  "compass": {
+    "name": "船長的羅盤",
+    "effect": "【可帶出】脫困時，敏捷 +2",
+    "value": 120,
+    "tier": 2,
+    "carry": true,
+    "drop": 0.03,
+    "check": "敏捷",
+    "bonus": 2,
+    "slot": "acc1",
+    "icon": "🧭",
+    "rarity": "yellow"
+  },
+  "rusty_fish_knife": {
+    "name": "生鏽的殺魚刀",
+    "effect": "最終存活判定 +20%",
+    "value": 40,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.3,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🔪",
+    "rarity": "blue",
+    "finalBonus": 20
+  },
+  "eye_hook": {
+    "name": "勾著眼珠的魚鉤",
+    "effect": "最終存活判定 +10%",
+    "value": 25,
+    "tier": 1,
+    "carry": false,
+    "drop": 0.35,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🪝",
+    "rarity": "green",
+    "finalBonus": 10
+  },
+  "humanface_fish": {
+    "name": "長著人臉的魚",
+    "effect": "最終存活判定 +50%",
+    "value": 150,
+    "tier": 1,
+    "carry": true,
+    "drop": 0.001,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🐟",
+    "rarity": "yellow",
+    "finalBonus": 50
+  },
+  "baguette_bat": {
+    "name": "可以打棒球的法國麵包",
+    "effect": "夏未留下的、凝成球棒的記憶。蘊含『回憶的力量』，在某些需要『想起什麼』的副本，或許能跨越時空幫上一把。",
+    "value": 180,
+    "tier": 1,
+    "carry": true,
+    "drop": 0,
+    "check": "蠻力",
+    "bonus": 3,
+    "slot": "weapon",
+    "icon": "🥖",
+    "rarity": "red",
+    "memoryPower": true
+  },
+  "baguette_bat_echo": {
+    "name": "會說話的法國麵包",
+    "effect": "一根法國麵包。不知為何，握在手裡出奇地順手，彷彿揮過無數次一樣。",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": "蠻力",
+    "bonus": 1,
+    "slot": "weapon",
+    "icon": "🥖",
+    "rarity": "green"
+  },
+  "baguette_bat_plain": {
+    "name": "法國麵包",
+    "effect": "一根法國麵包。曾經似乎盛著什麼，如今只剩下熟悉的重量。",
+    "value": 60,
+    "tier": 1,
+    "carry": true,
+    "drop": 0,
+    "check": "蠻力",
+    "bonus": 2,
+    "slot": "weapon",
+    "icon": "🥖",
+    "rarity": "blue",
+    "memoryPower": true
+  },
+  "frag_1": {
+    "name": "記憶碎片-1",
+    "effect": "一張照片：瘦小的背影把法國麵包扛在肩上，像蓄勢待發的打者。",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🧩",
+    "rarity": "white",
+    "quest": true
+  },
+  "frag_2": {
+    "name": "記憶碎片-2",
+    "effect": "二樓皮箱裡的舊日記：生日蛋糕、紅茶與法國麵包、開麵包店的夢、那頓沒赴成的晚餐。",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🧩",
+    "rarity": "white",
+    "quest": true
+  },
+  "frag_3": {
+    "name": "記憶碎片-3",
+    "effect": "事故那天的全部：口袋裡的小盒子、過馬路要看車、最後那句『我還沒答應你耶』。最痛的一塊。",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🧩",
+    "rarity": "green",
+    "quest": true
+  },
+  "old_baseball": {
+    "name": "舊棒球",
+    "effect": "皮箱裡悄悄多出的棒球，握著就發燙。隱藏結局的鑰匙之一。",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "⚾",
+    "rarity": "white",
+    "quest": true
+  },
+  "shop_intact": {
+    "name": "完好的麵包店",
+    "effect": "（內部標記：這片記憶的場景沒有被破壞）",
+    "value": 0,
+    "tier": 1,
+    "carry": false,
+    "drop": 0,
+    "check": null,
+    "bonus": 0,
+    "slot": null,
+    "icon": "🏠",
+    "rarity": "white",
+    "quest": true,
+    "internal": true
+  }
 };
-
 // --- 裝備槽定義 ---------------------------------------------------------------
 const SLOTS = {
   head:   { label:"頭部",   hint:"頭盔・頭飾" },
@@ -984,6 +1210,7 @@ function resolveEnd(kind, isForceExit){
   if(kind === "cleared"){
     ending.base = curScn.tier * 30;
     for(const it of runLoot){
+      if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
       if(it.carry){ ending.carried.push(it.name); }
       else { removeFromInventory(it); ending.consumed.push(it.name); ending.sold += it.value; }
     }
@@ -994,6 +1221,7 @@ function resolveEnd(kind, isForceExit){
     if(isForceExit){
       // 強制退出：1% 機率救援史詩以上道具
       for(const it of runLoot){
+        if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
         if(EPIC_RARITIES.has(it.rarity) && Math.random() < GODDESS_CHANCE){
           ending.goddessGifts.push(it.name); // 帶出，留在 inventory
         } else {
@@ -1003,6 +1231,7 @@ function resolveEnd(kind, isForceExit){
     } else {
       // 一般失敗：原有 10% carry 逃脫
       for(const it of runLoot){
+        if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
         if(it.carry && Math.random() < CARRY_ESCAPE_CHANCE){
           ending.escaped.push(it.name);
         } else {
@@ -1916,6 +2145,59 @@ function devTabItems(body){
       selField("裝備槽","slot",[[null,"無"],...SLOT_OPTS.map(s=>[s,SLOTS[s].label])])
     );
     card.appendChild(r3);
+
+    /* ── 列 3b：進階旗標 ── */
+    const r3b = devEl("div","dev-ic-r4"); // 沿用 r4 的 dashed border-top 樣式
+    r3b.appendChild(devEl("div","dev-ic-pool-title","進階旗標"));
+    const flagsRow = devEl("div","dev-ic-r3"); // flex-wrap 行
+    flagsRow.style.marginBottom = "0";
+
+    function cbFlag(label, field){
+      const wrap = devEl("div","dev-ic-field");
+      wrap.innerHTML = `<span class="dev-ic-label">${label}</span>`;
+      const cb = document.createElement("input"); cb.type = "checkbox";
+      cb.checked = !!it[field];
+      cb.style.cssText = "width:18px;height:18px;margin-top:4px;cursor:pointer;accent-color:var(--jade);";
+      cb.addEventListener("change", () => {
+        if(cb.checked) it[field] = true; else delete it[field];
+      });
+      wrap.appendChild(cb); return wrap;
+    }
+
+    const fbWrap = devEl("div","dev-ic-field");
+    fbWrap.innerHTML = `<span class="dev-ic-label">存活加成</span>`;
+    const fbInp = document.createElement("input");
+    fbInp.className = "dev-input dev-xs"; fbInp.type = "number";
+    fbInp.min = 0; fbInp.max = 100; fbInp.step = 1;
+    fbInp.value = it.finalBonus || 0;
+    fbInp.style.width = "62px";
+    fbInp.addEventListener("input", () => {
+      const v = Number(fbInp.value);
+      if(v > 0) it.finalBonus = v; else delete it.finalBonus;
+    });
+    fbWrap.appendChild(fbInp);
+
+    flagsRow.append(cbFlag("記憶武器","memoryPower"), cbFlag("任務道具","quest"), cbFlag("內部標記","internal"), fbWrap);
+    r3b.appendChild(flagsRow);
+
+    // 純授予來源（唯讀標示）
+    const grantSources = [];
+    Object.entries(SCENARIOS).forEach(([sid, scn]) => {
+      Object.entries(scn.nodes || {}).forEach(([nid, node]) => {
+        if((node.grant || []).includes(id)) grantSources.push(`${scn.title} / ${nid}`);
+        (node.choices || []).forEach(c => {
+          if((Array.isArray(c.grant)?c.grant:[c.grant]).includes(id)) grantSources.push(`${scn.title} / ${nid}（選項）`);
+        });
+      });
+    });
+    if(grantSources.length){
+      const grantLabel = devEl("div","");
+      grantLabel.style.cssText = "margin-top:7px;font-family:var(--mono);font-size:10px;color:var(--ink-dim);";
+      grantLabel.textContent = "授予於：" + grantSources.join("、");
+      r3b.appendChild(grantLabel);
+    }
+
+    card.appendChild(r3b);
 
     /* ── 列 4：副本分配 chip ── */
     const r4 = devEl("div","dev-ic-r4");

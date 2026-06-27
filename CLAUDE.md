@@ -185,7 +185,7 @@ SCENARIOS["id"] = {
 - **授予**：透過 `grant` 靜默加進背包與 `runLoot`，不彈出 popup，不顯示於任何 UI
 - **離場清除**：依賴 `carry:false`——cleared/dead 結算時 `resolveEnd` 會正確清除，不會滲入永久背包
 - **隱含 carry:false**（待辦）：目前 `internal:true` 的離場清除依賴作者手動加 `carry:false`，此前提未被引擎強制。建議引擎將 `internal:true` 自動視同 `carry:false`，使「隱形標記絕不滲入永久背包」成為引擎保證，而非作者慣例；可加開發期警告：偵測到 `internal:true` 卻未含 `carry:false` 時提示。
-- **帶出／賣錢防護**（待辦）：carry-out／賣錢系統上線時，於 `resolveEnd` 補上對 `internal` 的明確排除，與上一條一併處理。
+- **帶出／賣錢防護**：`resolveEnd` 三個迴圈（通關、強制退出、一般失敗）均已加上 `if(it.internal){ removeFromInventory(it); continue; }`，靜默清除、不列入任何面向玩家的結算清單（carried / consumed / lost / escaped / goddessGifts 均排除）。
 
 ### 回合數哨兵顯示
 
