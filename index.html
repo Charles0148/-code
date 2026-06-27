@@ -19,6 +19,9 @@
   <div id="view"></div>
 </div>
 
+<!-- 靜態查找表：裝備槽定義、稀有度中繼 -->
+<script src="data/slots.js"></script>
+
 <!-- 劇本資料：每個副本一支 js，新增劇本只需加新檔案 + 一行 script -->
 <script>const SCENARIOS = {};</script>
 <script src="scenarios/hospital_01.js"></script>
@@ -314,17 +317,7 @@ const ITEMS = {
   }
 };
 // --- 裝備槽定義 ---------------------------------------------------------------
-const SLOTS = {
-  head:   { label:"頭部",   hint:"頭盔・頭飾" },
-  body:   { label:"身體",   hint:"護甲・外套" },
-  feet:   { label:"腳部",   hint:"靴子・護腳" },
-  weapon: { label:"武器",   hint:"主要武器或工具" },
-  amulet: { label:"護身符", hint:"神祕力量加護" },
-  acc1:   { label:"飾品①", hint:"附加效果飾品" },
-  acc2:   { label:"飾品②", hint:"附加效果飾品" },
-};
-
-// 劇本資料已移至 scenarios/ 資料夾，由上方 <script src> 載入
+// SLOTS 已移至 data/slots.js
 
 // --- 狀態（程式管理；本場關閉視窗前都在記憶體裡）-----------------------------
 let currency, inventory, runLoot, seen, unlockedScenarios, screen;
@@ -342,15 +335,7 @@ let equipped = { head:null, body:null, feet:null, weapon:null, amulet:null, acc1
 let pendingLootItems = [];
 let selectedEquipItem = null;
 
-const RARITY_META = {
-  white:  { label:"普通", cls:"rar-white"   },
-  green:  { label:"稀有", cls:"rar-green"   },
-  blue:   { label:"精良", cls:"rar-blue"    },
-  yellow: { label:"史詩", cls:"rar-yellow"  },
-  red:    { label:"傳說", cls:"rar-red"     },
-  gold:   { label:"神器", cls:"rar-gold"    },
-  rainbow:{ label:"彩虹", cls:"rar-rainbow" },
-};
+// RARITY_META 已移至 data/slots.js
 function rarBadge(rarity){
   const m = RARITY_META[rarity] || RARITY_META.white;
   return `<span class="rar-badge ${m.cls}">${m.label}</span>`;
