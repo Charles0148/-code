@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-06-27 — 資料／樣式拆檔重構（ITEMS 分檔 + domain 標記）
+
+狀態：7 步驟全數完成並 commit；引擎契約（§5）未變動。
+
+做了什麼：
+- Step 1：抽 CSS → `style.css`，`index.html` 改 `<link rel="stylesheet">`
+- Step 2：抽 SLOTS + RARITY_META → `data/slots.js`
+- Step 3：抽 SHOP_ITEMS → `data/shop_items.js`
+- Step 4：抽 ACHIEVEMENTS → `data/achievements.js`
+- Step 5：抽 ITEMS → 三檔（`items_core.js`、`items_aquarium.js`、`items_bakery.js`），每項加 `domain` 欄位；改用 `Object.assign(ITEMS, {...})` 合併模式
+- Step 6：抽 `registerWinMode("accumulate", ...)` → `data/winmodes.js`；`WIN_CONDITIONS` / `computeAccumulatorBonus` 留在引擎主體（引擎工具函式不屬於 winMode）
+- Step 7：改 `tools/item_audit.js`，掃描來源從 index.html 改為 data/items_*.js；新增跨檔重複 id 偵測、domain 一致性驗證、聯集後驗 name 唯一；加 UTF-8 BOM 剝除保護；三方向注入測試全部通過
+
+技術決策：
+- winmodes.js 必須在引擎主 `<script>` 之後載入（registerWinMode 函式才存在）
+- WIN_CONDITIONS 留在引擎：跨 script 的 `const` 有 scope 陷阱，且它是引擎工具非 winMode 私物
+- Step 6 曾出現「aquarium 副本永遠通關」bug：root cause 是 WIN_CONDITIONS 移到 winmodes.js 後 const 跨 script 無法存取；修法是把它移回引擎
+- BOM 問題：items_core.js 曾因 Write 工具寫出帶 BOM 的 UTF-8 導致 new Function 失敗，已在 item_audit.js 加 charCodeAt(0) 剝除，並從 git 還原正確編碼
+
+下一步：
+- 擴充副本數量（目前 6 個，目標 10+）
+- DESIGNLOG 由作者撰寫（本次重構的設計動機）
+
+---
+
 ## 2026-06-27 — resolveEnd 補上 internal 排除；作者透過 Dev 調整球棒數值
 
 狀態：internal 道具不再出現在任何面向玩家的結算清單；CLAUDE.md 引擎能力契約對應更新。

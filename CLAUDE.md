@@ -15,24 +15,50 @@
 
 ```
 無限流 code/
-  index.html                    ← 引擎、UI、CSS、所有資料定義
+  index.html                    ← 引擎主體、UI 結構（不再含資料定義或 CSS）
+  style.css                     ← 所有樣式（從 index.html 抽出）
   CLAUDE.md                     ← 本文件
+  data/
+    slots.js                    ← SLOTS（裝備槽）、RARITY_META（稀有度元資料）
+    shop_items.js               ← SHOP_ITEMS（商店道具）
+    achievements.js             ← ACHIEVEMENTS（成就定義）
+    items_core.js               ← ITEMS：核心道具（domain:"core"，多副本共用）
+    items_aquarium.js           ← ITEMS：水族館專屬道具（domain:"aquarium"，slot:null）
+    items_bakery.js             ← ITEMS：麵包店專屬道具（domain:"bakery"）
+    winmodes.js                 ← registerWinMode 登記（引擎主 script 之後載入）
   scenarios/
     hospital_01.js              ← 廢棄醫院（T1，普通）
     store_01.js                 ← 深夜便利商店（T1，普通）
     wreck_01.js                 ← 傾覆的沉船（T2，普通）
     metro_01.js                 ← 廢棄地鐵站（T1，需解鎖 80 點）
     aquarium_01.js              ← 閉館後的藍（T1，特殊劇本，winMode:"accumulate"）
+    bakery_01.js                ← 凌晨四點的麵包店（T1，特殊劇本）
+  tools/
+    item_audit.js               ← 道具稽核工具（node tools/item_audit.js）
 ```
+
+### index.html 的 script 載入順序（不可任意調換）
+1. `data/slots.js`、`data/shop_items.js`、`data/achievements.js`（靜態查找表）
+2. `const ITEMS = {};`（空宣告）
+3. `data/items_core.js`、`data/items_aquarium.js`、`data/items_bakery.js`（Object.assign 合併）
+4. `const SCENARIOS = {};`（空宣告）
+5. `scenarios/*.js`（各副本定義）
+6. 引擎主 `<script>`（含 WIN_CONDITIONS、WINMODE_HOOKS、registerWinMode 等）
+7. `data/winmodes.js`（必須在引擎之後，registerWinMode 函式才存在）
+
+### 新增道具
+- 跨副本通用道具 → 加進 `data/items_core.js`，`domain:"core"`
+- 副本專屬道具 → 新增 `data/items_X.js`，`domain:"X"`；在 index.html 加一行 `<script src>`
+- 每個道具**必須**有 `domain` 欄位，且值等於所在檔的 `X`（由 itemcheck 強制）
 
 ### 新增普通劇本
 1. 在 `scenarios/` 新增 `xxx.js`，格式：`SCENARIOS["id"] = { ... };`
-2. 在 `index.html` script 載入區（約第 464 行）加 `<script src="scenarios/xxx.js"></script>`
+2. 在 `index.html` script 載入區加 `<script src="scenarios/xxx.js"></script>`
 3. 引擎自動識別，不需其他修改。
 
 ### 新增特殊劇本
 ⚠️ 使用者會在給你的內容上標註「特殊劇本」。遇到時：
-1. 在 `index.html` 的 `WINMODE_HOOKS` 區塊（約第 660 行）新增一個 `registerWinMode(...)` 登記
+1. 在 `data/winmodes.js` 尾端加 `registerWinMode(...)` 登記（**不要**寫進 index.html）
 2. **不要**把特殊邏輯直接塞進引擎的 if/else，保持各劇本邏輯完全隔離
 3. 詳見第 5 節「擴充機制」
 
