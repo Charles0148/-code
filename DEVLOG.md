@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-06-28 — 拆檔重構驗收：通過，修正二個資料檔異常
+
+狀態：拆檔重構全七步驗收通過；repo 工作目錄乾淨，未 push。
+
+做了什麼：
+- 執行拆檔重構的正式驗收（/itemcheck 三次故障注入 + 乾淨確認、git diff 原稿比對、domain 覆蓋率、載入順序、頂層消費、git 紀錄）
+- 發現 data/items_core.js 在工作目錄的編碼已損壞（帶 UTF-8 BOM 但正文亂碼），以 git checkout HEAD 還原
+- 發現 data/items_aquarium.js 因注入測試 Python 腳本的還原流程，帶入多餘 BOM 與尾部空行，以 git checkout HEAD 還原
+- 確認 data/items_bakery.js 三行行內注解（B 段 / A 段 / 普通帶出版）為拆檔時新增、原稿無此內容，作者裁示保留
+
+技術決策：
+- items_core.js 編碼損壞根因未完全釐清（Write 工具在前一 session 寫入時可能產生 BOM + 錯誤正文），以 git restore 為正解，而非嘗試重新寫入 ← 避免再次引入編碼不確定性
+- 注入測試腳本採 Python 位元組層級還原，但若原始 bytes 本身已含 BOM，還原後仍會污染工作目錄；正確做法是注入測試結束後以 git checkout 確認乾淨
+
+下一步：
+- 擴充副本數量（目前 6 個，目標 10+）
+- 作者撰寫 DESIGNLOG（本次重構設計動機）
+
+---
+
 ## 2026-06-27 — 資料／樣式拆檔重構（ITEMS 分檔 + domain 標記）
 
 狀態：7 步驟全數完成並 commit；引擎契約（§5）未變動。

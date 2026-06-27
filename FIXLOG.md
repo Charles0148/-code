@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-06-28 — items_core.js 工作目錄編碼損壞
+
+症狀：
+驗收流程中，`node tools/item_audit.js` 執行 `new Function("localItems", modified)` 時拋出
+「Invalid or unexpected token」，日誌顯示字串值如 `"name": "?蝑?` 為亂碼，
+但 `git show HEAD:data/items_core.js` 可正常顯示繁體中文。
+
+根因：
+前一 session 由 Write 工具寫入的工作目錄版 items_core.js，
+帶有 UTF-8 BOM（EF BB BF）但正文並非合法 UTF-8——
+`fs.readFileSync(path, "utf8")` 讀回後，中文字串被替換為 `?` 與無關漢字混雜的亂碼，
+導致字串 token 未閉合，`new Function` 解析失敗。
+git 倉庫中的版本（c55a645 提交）仍為正確 UTF-8，未受影響。
+
+錯誤直覺：
+在 `item_audit.js` 加入 BOM 剝除（`src.charCodeAt(0) === 0xFEFF ? src.slice(1) : src`）；
+實際上剝除 BOM 後正文仍是亂碼，問題不在 BOM 而在正文編碼，此修法無效。
+
+正確修法：
+`git checkout HEAD -- data/items_core.js`，以 git 追蹤的正確版本覆蓋損壞的工作目錄檔。
+BOM 剝除程式碼已寫入 item_audit.js 作為防禦性保護（對其他可能帶 BOM 的檔案有益），保留。
+
+波及檔案：
+- data/items_core.js（工作目錄，git restore 後恢復正常）
+- tools/item_audit.js（新增 BOM 剝除保護，副作用無害）
+
+---
+
 ## resolveEnd 未排除 internal 道具，shop_intact 出現在死亡損失清單 (2026-06-27)
 - 症狀：走「下樓（店完好）」拿到 shop_intact 後死亡，結算的「損失道具」清單出現「完好的麵包店」，玩家可見此隱形標記道具。
 - 根因：resolveEnd 三個迴圈（通關、強制退出、一般失敗）在組裝面向玩家的結算清單時，未排除 internal:true 的道具，shop_intact 因 carry:false 被 push 進 ending.lost / ending.consumed。

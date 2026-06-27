@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-06-28 — 資料／樣式拆檔重構：ITEMS 分檔 + domain 來源域標記
+
+劇本/設定定案：
+- 本次無新增劇本或敘事內容。屬於架構重構，非劇本設計。
+- 道具資料治理規則（新發明，定為當前真相）：遊戲執行期要用的資料一律 `.js` 全域檔、同步 `<script>` 載入，禁止 fetch／ESM／markdown 解析；人與 AI 看的文件才用 `.md`，引擎永不載入。道具屬於前者，不得轉成 md。
+- 檔案職責邊界（定為當前真相）：index.html 只留引擎邏輯、UI 結構、引擎常數、`<script src>` 引入清單；資料與樣式抽出為獨立檔。切割依「職責」而非「行數大小」——大小是症狀，資料與邏輯混檔才是病。
+- 拆檔後的檔案配置（當前真相）：
+  - `style.css` ＝ 全部 CSS
+  - `data/slots.js` ＝ SLOTS + RARITY_META
+  - `data/shop_items.js` ＝ SHOP_ITEMS
+  - `data/achievements.js` ＝ ACHIEVEMENTS
+  - `data/items_core.js`（7 顆，多副本共用）/ `data/items_aquarium.js`（3 顆）/ `data/items_bakery.js`（8 顆）＝ ITEMS 三檔，index.html 改為 `const ITEMS={};` 空宣告，各檔以 `Object.assign(ITEMS,{...})` 填入
+  - `data/winmodes.js` ＝ WIN_CONDITIONS + registerWinMode，須在引擎主體之後載入（registerWinMode 依賴 WINMODE_HOOKS）
+- domain 來源域標記（新發明，當前真相）：每顆道具新增 `domain` 欄位，值等於所在檔（core／aquarium／bakery）。純標記欄位，引擎不讀取、不影響任何遊戲行為，僅供稽核與未來 Dev 回填指引使用。
+- 載入順序（當前真相）：slots → shop_items → achievements → `const ITEMS={}` → items_core → items_aquarium → items_bakery → `const SCENARIOS={}` → scenarios → 引擎主體 → winmodes。
+- 原稿邊界確認：baguette_bat 三顆球棒的 A 段／普通版註解確認為先前 session 新增（拆檔前 commit bef9a00／e52e881 的 index.html 無此三行），非本次竄改；經裁示保留。除新增 domain 欄位外，所有道具資料值與原稿逐字相同。`node_hidden_9`「它將永遠跟著你走下去」在 scenarios/bakery_01.js，本次未動。
+
+設計原則/教訓：
+- 切割依職責、不依大小 ← 照「檔案太大」切會把同一坨東西打散成碎檔，問題只是換地方堆；照「職責」切（引擎／資料／樣式／查找表）才真的好維護。錯誤直覺是「讓 HTML 變小就好」。
+- runtime 資料用 .js、文件才用 .md ← md 存不住 carry／internal／memoryPower／name 等機器要讀的欄位，且需引入 parser＋fetch＋錯誤處理，反而增加失敗面；file:// 本機開發會被 fetch/CORS 擋。要避免「為了瘦身把資料搬進 md」這個陷阱。
+- 多檔聚合的稽核要驗聯集、不驗逐檔 ← `Object.assign` 後寫覆蓋且靜默無錯，兩檔同 id 執行期只剩一顆而不報錯。/itemcheck 必須先聯集再驗 name 唯一，並主動偵測跨檔同 id。
+- domain 標記順勢成為第三道稽核防線 ← 道具被貼錯檔時 domain 與所在檔不符即被攔，防止拆檔後人工回填貼錯位置。
+- 動引擎檔的重構要逐步 commit ← 七步各一 commit，壞了能乾淨退回單步，而非整包翻車。
+- 「完成」是驗收者拍板、不是執行者宣稱 ← AI 常宣稱「測過了」實則只跑正向。驗收要求逐項出示證據（反向測試實際輸出＋退出碼、git diff、grep、載入順序、git log），尤其反向測試要看到三種故障都被攔、退出碼正確。
+
+有效的提示詞：
+- 「每一項都要實際執行並把輸出貼給我看，不接受『已測試／沒問題』這種口頭結論」 ← 把驗收寫成「你示範、我看證據」，逼出 AI 是否真的做過反向測試（做過就貼輸出、沒做過才補跑），同時擋掉虛報。
+- 「乾淨時放行、髒時攔截，兩個方向都要驗」 ← 反向測試注入假 name 撞車／跨檔同 id／domain 不符，確認真的擋得住，而非只驗乾淨放行。
+- 「先確認這些 md 是引擎要載入的資料、還是給人看的文件」 ← 一句話分流，擋下「把道具資料搬進 md」這個會破壞稽核與機械判斷原則的錯誤路線。
+
+給 Claude Code 的交接（若有）：
+- 本次無新引擎機制需求。能力契約（§5）未更動，純搬遷。
+- 待辦（下一張工作單，非本次）：Dev 面板 UI 指引強化——改完道具數值後，依 domain 在匯出框顯示「這顆屬於 data/items_X.js，貼到 ITEMS 區塊」的人話指引，讓「匯出→回填」round-trip 在拆檔後不斷。
+
+下一步：
+- 親跑一輪麵包店副本，確認三顆球棒授予與彈窗正常、internal 道具（shop_intact）結算靜默清除（若尚未跑，push 前補上）。
+- 開第二張工作單：Dev 面板 domain-aware 回填指引（UI 層，與本次拆檔分離）。
+- 仍掛著的舊債：分析／遙測缺口、localStorage 跨局累積脆弱性、QBN 旗標複雜度成長。
+
+---
+
 ## 2026-06-27 — 道具稽核機能、Dev 進階旗標、記憶球棒三道具分流、internal 結算修復
 
 劇本/設定定案：
