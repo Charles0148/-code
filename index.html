@@ -1016,7 +1016,7 @@ function devRender(){
 
   // Header
   const hdr = devEl("div","dev-header");
-  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span>';
+  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span><span style="font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.1em;margin-left:10px">ver. Test02</span>';
   const closeB = devEl("button","dev-btn close","✕ 關閉");
   closeB.onclick = devToggle;
   hdr.appendChild(closeB);
