@@ -213,6 +213,25 @@ SCENARIOS["id"] = {
 - **隱含 carry:false**（待辦）：目前 `internal:true` 的離場清除依賴作者手動加 `carry:false`，此前提未被引擎強制。建議引擎將 `internal:true` 自動視同 `carry:false`，使「隱形標記絕不滲入永久背包」成為引擎保證，而非作者慣例；可加開發期警告：偵測到 `internal:true` 卻未含 `carry:false` 時提示。
 - **帶出／賣錢防護**：`resolveEnd` 三個迴圈（通關、強制退出、一般失敗）均已加上 `if(it.internal){ removeFromInventory(it); continue; }`，靜默清除、不列入任何面向玩家的結算清單（carried / consumed / lost / escaped / goddessGifts 均排除）。
 
+### 節點成就觸發
+
+節點物件上可設 `achievement: "ach_id"`，引擎進入該節點時自動呼叫 `unlockAchievement`。
+
+- 觸發時機：`processGrant` 之後、`resolveEnd` 之前（道具已授予，結算尚未開始）
+- 支援任何節點（含 `end` 節點）
+- 不需要 winMode，普通副本直接使用
+- 複雜條件（回合數、累積數值等）未來以擴充欄位處理，現階段不支援
+
+```js
+node_hidden_final: {
+  end: "cleared",
+  achievement: "ach_1782663164619",
+  scene: "..."
+}
+```
+
+---
+
 ### 回合數哨兵顯示
 
 當 `scenario.turnLimit === 99` 時，副本內右上角的回合計數器分母渲染為 `??`，分子照常累加（顯示 `1 / ??`）。

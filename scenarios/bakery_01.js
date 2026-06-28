@@ -401,6 +401,7 @@ SCENARIOS["bakery_01"] = {
 
     node_hidden_final: {
       end: "cleared",
+      achievement: "ach_1782663164619",
       scene: "予舟輕輕閉上眼。這一次，掌心裡的重量，他再也不會忘記。\n\n〔真結局＋隱藏記憶：《沒有如果》〕"
     },
 

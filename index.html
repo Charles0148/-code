@@ -378,6 +378,7 @@ function choose(choice){
 
   const node = curScn.nodes[nextId];
   processGrant(node);
+  if(node.achievement) unlockAchievement(node.achievement);
   if(node.end){ resolveEnd(node.end); }
   render(true);
 }
@@ -1593,6 +1594,19 @@ function devTabScenarios(body){
   });
 }
 
+/* ── 欄位級差異（「修改」類型專用）── */
+function getFieldDiff(before, after){
+  const allKeys = new Set([...Object.keys(before||{}), ...Object.keys(after||{})]);
+  const changed=[], added=[], removed=[];
+  allKeys.forEach(k => {
+    const bv = before?.[k], av = after?.[k];
+    if(bv === undefined)                              added.push({key:k, newVal:av});
+    else if(av === undefined)                         removed.push({key:k, oldVal:bv});
+    else if(JSON.stringify(bv)!==JSON.stringify(av))  changed.push({key:k, oldVal:bv, newVal:av});
+  });
+  return {changed, added, removed};
+}
+
 /* ── ITEMS domain-aware 匯出 helper ── */
 /* ── Dev 差異匯出：計算相對載入快照的變更（新增/修改/刪除）── */
 function getDataDiff(current, baseline){
@@ -1676,16 +1690,42 @@ function buildDiffExport(container, current, baseline, opts){
       card.appendChild(slEl);
     }
 
-    // payload：修改/新增給單顆 Object.assign；刪除給 delete 語句（皆為合法 JS）
+    // payload：新增→整塊 Object.assign；修改→欄位級差異；刪除→delete 語句
     let payload;
     if(ch.type === "刪除"){
       payload = "// 從 " + (fileInfo.file || "對應檔") + " 移除此道具：\ndelete " + opts.objName + "[\"" + ch.id + "\"];";
-    } else {
+    } else if(ch.type === "新增"){
       const one = {}; one[ch.id] = ch.after;
       payload = "Object.assign(" + opts.objName + ", " + JSON.stringify(one, null, 2) + ");";
+    } else {
+      // 修改：只列出有變動的欄位，避免整塊替換蓋掉註解等原始碼內容
+      const {changed, added, removed} = getFieldDiff(ch.before, ch.after);
+      const lines = [];
+      lines.push("// 所屬檔：" + (fileInfo.file || "請手動確認"));
+      lines.push("// 在源碼找到 \"" + ch.id + "\" 的 block，逐行替換下方欄位，不要整塊貼");
+      lines.push("");
+      changed.forEach(({key, oldVal, newVal}) => {
+        lines.push("// ── 修改：" + key);
+        lines.push("//   舊：" + JSON.stringify(oldVal));
+        lines.push("    \"" + key + "\": " + JSON.stringify(newVal) + ",");
+        lines.push("");
+      });
+      added.forEach(({key, newVal}) => {
+        lines.push("// ── 新增欄位：" + key + "（插入任意位置）");
+        lines.push("    \"" + key + "\": " + JSON.stringify(newVal) + ",");
+        lines.push("");
+      });
+      removed.forEach(({key}) => {
+        lines.push("// ── 移除欄位：" + key + "（請從源碼刪除該行）");
+        lines.push("");
+      });
+      payload = lines.join("\n");
     }
     const ta = devEl("textarea","dev-export-area");
-    ta.readOnly = true; ta.style.height = (ch.type === "刪除") ? "52px" : "118px";
+    ta.readOnly = true;
+    if(ch.type === "刪除") ta.style.height = "52px";
+    else if(ch.type === "新增") ta.style.height = "118px";
+    else ta.style.height = Math.max(80, payload.split("\n").length * 19) + "px";
     ta.value = payload;
     card.appendChild(ta);
 
