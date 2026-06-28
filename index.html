@@ -65,6 +65,7 @@ let currency, inventory, runLoot, seen, unlockedScenarios, screen;
 let curScn, curScnId, curNodeId, turn, pendingLoot, pendingCheck, pendingReward, ending;
 let unlockedAchievements;
 let pendingAchievements = []; // 本次要顯示 popup 的成就佇列
+let autoDropRolled = new Set(); // 本場 autoDrop 已擲過的道具 id（每顆整局只擲一次）
 
 const SAVE_KEY = "mugen_save_v2";
 
@@ -253,6 +254,8 @@ function computeFinalBonus(inv){
 function rollAutoDrops(poolIds){
   for(const id of poolIds){
     const def = ITEMS[id]; if(!def) continue;
+    if(autoDropRolled.has(id)) continue;   // 整局每顆道具只擲一次：擲過（不論成敗）就不再擲
+    autoDropRolled.add(id);
     if(inventory.some(it => it.name === def.name)) continue;
     if(Math.random() >= def.drop) continue;
     const entry = {
@@ -290,6 +293,7 @@ function enterTier(tier){
   const id = drawScenario(tier);
   curScn = SCENARIOS[id]; curScnId = id; curNodeId = "start"; turn = 1;
   runLoot = []; pendingLoot = []; pendingCheck = null; pendingReward = 0;
+  autoDropRolled = new Set();
   runState = {};
   const _hooks = WINMODE_HOOKS[curScn.winMode];
   if(_hooks?.onEnter) _hooks.onEnter(runState);
@@ -1419,25 +1423,16 @@ function devTabItems(body){
   sec.appendChild(addBtn);
   body.appendChild(sec);
 
-  // 匯出區（即時同步）
+  // 匯出區（即時同步，domain-aware）
   const expSec1 = devEl("div","dev-section");
   expSec1.style.marginTop = "24px";
-  expSec1.appendChild(devEl("div","dev-section-title","匯出 ITEMS"));
-  const ta1 = devEl("textarea","dev-export-area"); ta1.readOnly = true; ta1.style.height = "180px";
-  const refresh1 = () => { ta1.value = "const ITEMS = "+JSON.stringify(ITEMS, null, 2)+";"; };
+  expSec1.appendChild(devEl("div","dev-section-title","匯出 ITEMS（依 domain 分檔）"));
+  const domainExportBox = devEl("div");
+  expSec1.appendChild(domainExportBox);
+  const refresh1 = () => { buildItemsDomainExport(domainExportBox); };
   refresh1();
   sec.addEventListener("input",  refresh1);
   sec.addEventListener("change", refresh1);
-  expSec1.appendChild(ta1);
-  const copyBtn1 = devEl("button","dev-btn copy","複製 ITEMS");
-  copyBtn1.onclick = () => {
-    refresh1();
-    const copy = () => { ta1.select(); document.execCommand("copy"); };
-    if(navigator.clipboard){ navigator.clipboard.writeText(ta1.value).catch(copy); } else copy();
-    copyBtn1.textContent = "✓ 已複製！";
-    setTimeout(() => copyBtn1.textContent = "複製 ITEMS", 2000);
-  };
-  expSec1.appendChild(copyBtn1);
   body.appendChild(expSec1);
 }
 
@@ -1598,33 +1593,95 @@ function devTabScenarios(body){
   });
 }
 
+/* ── ITEMS domain-aware 匯出 helper ── */
+function buildItemsDomainExport(container) {
+  container.innerHTML = "";
+  const groups = {};
+  const noDomain = [];
+  Object.entries(ITEMS).forEach(([id, item]) => {
+    const d = (item.domain != null && item.domain !== "") ? item.domain : null;
+    if (!d) { noDomain.push({ id, item }); return; }
+    if (!groups[d]) groups[d] = {};
+    groups[d][id] = item;
+  });
+
+  Object.entries(groups).forEach(([domain, items]) => {
+    const filename = "data/items_" + domain + ".js";
+    // UI chrome：回填目標提示（不進 payload）
+    const hint = devEl("div", "");
+    hint.style.cssText = "color:var(--jade);font-size:12px;margin:10px 0 3px;font-family:var(--mono)";
+    hint.textContent = "→ 貼回 " + filename + " 的 Object.assign(ITEMS,{…}) 區塊";
+    container.appendChild(hint);
+    // payload：合法 JS，複製後可直接貼入目標檔
+    const getPayload = () => {
+      const fresh = {};
+      Object.entries(ITEMS).forEach(([id2, it2]) => { if (it2.domain === domain) fresh[id2] = it2; });
+      return "Object.assign(ITEMS, " + JSON.stringify(fresh, null, 2) + ");";
+    };
+    const ta = devEl("textarea", "dev-export-area");
+    ta.readOnly = true; ta.style.height = "120px";
+    ta.value = getPayload();
+    container.appendChild(ta);
+    const btn = devEl("button", "dev-btn copy", "複製 " + domain);
+    btn.onclick = () => {
+      const p = getPayload(); ta.value = p;
+      const copy = () => { ta.select(); document.execCommand("copy"); };
+      if (navigator.clipboard) { navigator.clipboard.writeText(p).catch(copy); } else copy();
+      btn.textContent = "✓ 已複製！";
+      setTimeout(() => btn.textContent = "複製 " + domain, 2000);
+    };
+    container.appendChild(btn);
+  });
+
+  // 缺 domain 警告（禁止捏造檔名）
+  noDomain.forEach(({ id, item }) => {
+    const warn = devEl("div", "");
+    warn.style.cssText = "color:var(--rust);font-size:13px;margin:8px 0;padding:6px 10px;border:1px solid var(--rust);border-radius:4px";
+    warn.textContent = "⚠ 此道具未標記 domain，無法判定所屬檔，請手動確認。（" + id + "：" + (item.name || "") + "）";
+    container.appendChild(warn);
+  });
+
+  if (Object.keys(groups).length === 0 && noDomain.length === 0) {
+    const empty = devEl("div", "");
+    empty.style.cssText = "color:var(--ink-dim);font-size:13px;";
+    empty.textContent = "（ITEMS 為空）";
+    container.appendChild(empty);
+  }
+}
+
 /* ── Tab 4：匯出 ── */
 function devTabExport(body){
   body.appendChild(devEl("div","dev-section-title","匯出修改後的資料"));
   const desc = devEl("div");
   desc.style.cssText = "color:var(--ink-dim);font-size:13px;margin-bottom:16px;line-height:1.8";
-  desc.textContent = "以下是你在面板裡做的所有修改（含新增/刪除）轉成的 JS 程式碼。複製後貼回 index.html 對應區塊即可固化。";
+  desc.textContent = "以下是你在面板裡做的所有修改（含新增/刪除）轉成的 JS 程式碼。複製後貼回對應資料檔即可固化。";
   body.appendChild(desc);
 
-  [
-    { label:"SHOP_ITEMS", data:SHOP_ITEMS },
-    { label:"ITEMS", data:ITEMS },
-  ].forEach(({label, data}) => {
-    body.appendChild(devEl("div","dev-section-title", label));
-    const ta = devEl("textarea","dev-export-area");
-    ta.readOnly = true;
-    ta.value = "const "+label+" = "+JSON.stringify(data, null, 2)+";";
-    body.appendChild(ta);
-    const btn = devEl("button","dev-btn copy","複製 "+label);
-    btn.onclick = () => {
-      const copy = () => { ta.select(); document.execCommand("copy"); };
-      if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).catch(copy); }
-      else copy();
-      btn.textContent = "✓ 已複製！";
-      setTimeout(()=>btn.textContent="複製 "+label, 2000);
-    };
-    body.appendChild(btn);
-  });
+  // SHOP_ITEMS（維持原格式，貼回 data/shop_items.js）
+  const shopHint = devEl("div", "");
+  shopHint.style.cssText = "color:var(--jade);font-size:12px;margin:10px 0 3px;font-family:var(--mono)";
+  shopHint.textContent = "→ 貼回 data/shop_items.js 的 const SHOP_ITEMS = {…} 區塊";
+  body.appendChild(shopHint);
+  body.appendChild(devEl("div","dev-section-title","SHOP_ITEMS"));
+  const taShop = devEl("textarea","dev-export-area");
+  taShop.readOnly = true;
+  taShop.value = "const SHOP_ITEMS = "+JSON.stringify(SHOP_ITEMS, null, 2)+";";
+  body.appendChild(taShop);
+  const btnShop = devEl("button","dev-btn copy","複製 SHOP_ITEMS");
+  btnShop.onclick = () => {
+    taShop.value = "const SHOP_ITEMS = "+JSON.stringify(SHOP_ITEMS, null, 2)+";";
+    const copy = () => { taShop.select(); document.execCommand("copy"); };
+    if(navigator.clipboard){ navigator.clipboard.writeText(taShop.value).catch(copy); } else copy();
+    btnShop.textContent = "✓ 已複製！";
+    setTimeout(()=>btnShop.textContent="複製 SHOP_ITEMS", 2000);
+  };
+  body.appendChild(btnShop);
+
+  // ITEMS（domain-aware，按檔分組）
+  body.appendChild(devEl("div","dev-section-title","ITEMS（依 domain 分檔）"));
+  const itemsBox = devEl("div");
+  body.appendChild(itemsBox);
+  buildItemsDomainExport(itemsBox);
 }
 
 /* ── Tab 5：成就 ── */

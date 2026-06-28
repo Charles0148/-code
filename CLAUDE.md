@@ -285,7 +285,7 @@ accumulator: {
   overflow:        { achievementRoll: true },  // total >= max 時的溢出行為（選填）
   skipSteer:       true,             // 略過通用 steerAt 高潮導引
   skipTurnLimit:   true,             // 略過通用回合上限強制結束
-  autoDropPerNode: true,             // 每回合進節點時自動對 pool 擲掉落（選填，預設 false）
+  autoDropPerNode: true,             // 進節點時自動對 pool 擲掉落；每顆道具整局只擲一次，drop 即整局掉落機率（選填，預設 false）
 }
 ```
 
