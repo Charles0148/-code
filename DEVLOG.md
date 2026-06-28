@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-06-29 — 成就觸發機制、Dev 匯出欄位化、中離訊息統一、版本號顯示
+
+狀態：全部 commit 並 push 至 GitHub（最新 ver. Test04）；repo 工作目錄乾淨。
+
+做了什麼：
+- 新增引擎節點成就觸發：節點物件可設 `achievement: "ach_id"`，引擎進入節點時自動呼叫 unlockAchievement（processGrant 之後、resolveEnd 之前）
+- bakery_01 node_hidden_final 加上 `achievement: "ach_1782663164619"`，走完隱藏結局自動解鎖「全壘打」
+- data/achievements.js 補入 ach_1782663164619（全壘打）定義；原本只在 Dev 面板新增、未寫回檔案，導致成就無法觸發
+- Dev 差異匯出改為欄位級：新增 getFieldDiff()，「修改」類型改為逐欄位列出差異（舊值/新值/可直接貼的新行），不再輸出整塊 Object.assign；「新增」維持整塊，「刪除」維持 delete 語句
+- 中離結算訊息統一：resolveEnd 的 ending 物件加入 forceExit 旗標；renderEnding 偵測後改顯示固定文字「你拒絕了記憶的殘片。現在，殘片也拒絕了你。」，不洩漏劇本死亡台詞
+- Dev 面板 header 加版本號顯示（`ver. TestXX`，金色 brass 色）
+- 道具文字更新（均由作者透過 Dev 面板修改後貼回）：baguette_bat / baguette_bat_echo / baguette_bat_plain 的 effect；baguette_bat_plain 改名為「不願放手的法國麵包」
+
+技術決策：
+- 節點成就觸發選「宣告式欄位」而非 winMode hook ← 每個副本開一個 winMode 只為觸發成就屬過度設計；節點路由本身已是條件閘門，到達特定節點即隱含走完了對應路徑，覆蓋九成成就需求
+- 複雜成就條件（回合數、累積數值、完成次數）暫不實作 ← 等到第一個真正需要的成就出現時再以 enum 擴充，不預先設計
+- Dev 匯出「修改」改為欄位級而非整塊 ← 整塊替換會蓋掉原始碼中的 JS 註解（如 baguette_bat 的 B 段說明）；欄位級輸出讓作者只換有變動的行，其餘原始碼內容完全保留
+- ending.forceExit 存進 ending 物件 ← isForceExit 只是 resolveEnd 的參數，不存進物件則 renderEnding 無法判斷；加旗標是最小改動，不影響其他路徑
+
+下一步：
+- 擴充副本數量（目前 5 個可玩，目標 10+）
+- 複雜成就條件機制（等有需求再做）
+- 每次 push 須同時更新版本號（已記入協作規則）
+
+---
+
 ## 2026-06-28 — Dev 面板改為差異匯出；復原 autoDrop 誤改；調降 aquarium 掉落率
 
 狀態：index.html 差異匯出功能完成（未 commit）；metro_01 pool 移除 key（未 commit）；aquarium 掉落率已在前一 commit 更新完畢。

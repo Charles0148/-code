@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-06-29 — 成就定義未寫回檔案，觸發後無反應
+
+症狀：
+bakery_01 走到 node_hidden_final，引擎呼叫 unlockAchievement("ach_1782663164619")，
+但畫面無成就解鎖 popup，成就列表也未更新。
+
+根因：
+作者在 Dev 面板新增了 ach_1782663164619，Dev 面板直接寫入執行記憶體中的 ACHIEVEMENTS 物件，
+但未透過匯出流程貼回 data/achievements.js；
+頁面重新整理後該成就消失，unlockAchievement 取 ACHIEVEMENTS[id] 得到 undefined，
+雖然 id 被加進 unlockedAchievements Set，但 popup 渲染因 ach 為 undefined 靜默跳過，
+也因此不顯示任何解鎖動畫。
+
+錯誤直覺：
+「節點的 achievement 欄位或引擎觸發邏輯有問題」——
+實際上引擎觸發完全正確，問題在資料層根本不存在該成就定義。
+
+正確修法：
+將 ach_1782663164619 定義補入 data/achievements.js 的 ACHIEVEMENTS 物件。
+
+波及檔案：
+- data/achievements.js（補入成就定義）
+
+---
+
 ## 2026-06-28 — autoDrop 語意誤解：誤改為整局只擲一次
 
 症狀：
