@@ -4,7 +4,7 @@ Object.assign(ITEMS, {
   "baguette_bat": {
     "name": "可以打棒球的法國麵包",
     // B 段：隱藏記憶路徑專屬，揭露於 node_baguette_reward
-    "effect": "夏未留下的、凝成球棒的記憶。蘊含『回憶的力量』，在某些需要『想起什麼』的副本，或許能跨越時空幫上一把。",
+    "effect": "夏未留下的，蘊含回憶的法國麵包。據說真的可以打棒球。至少曾經有人，非常認真地相信過。",
     "value": 180,
     "tier": 1,
     "carry": true,
@@ -20,7 +20,7 @@ Object.assign(ITEMS, {
   "baguette_bat_echo": {
     "name": "會說話的法國麵包",
     // A 段：第一幕授予，副本內武器，carry:false 離場必清
-    "effect": "一根法國麵包。不知為何，握在手裡出奇地順手，彷彿揮過無數次一樣。",
+    "effect": "一根會說話的法國麵包，總在睡夢中一次次敲醒你。",
     "value": 0,
     "tier": 1,
     "carry": false,
@@ -35,7 +35,7 @@ Object.assign(ITEMS, {
   "baguette_bat_plain": {
     "name": "法國麵包",
     // 普通帶出版：普通結局與一般真結局授予
-    "effect": "一根法國麵包。曾經似乎盛著什麼，如今只剩下熟悉的重量。",
+    "effect": "一根法國麵包，似乎承載著許多回憶。即使你什麼都想不起來，它也始終不離不棄。",
     "value": 60,
     "tier": 1,
     "carry": true,
