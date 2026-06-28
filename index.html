@@ -393,7 +393,7 @@ const GODDESS_CHANCE      = 0.01;  // 強制退出時史詩以上道具救援機
 const EPIC_RARITIES       = new Set(["yellow","red","gold","rainbow"]);
 
 function resolveEnd(kind, isForceExit){
-  ending = { kind, carried:[], consumed:[], sold:0, base:0, lost:[], broken:[], goddessGifts:[] };
+  ending = { kind, forceExit:!!isForceExit, carried:[], consumed:[], sold:0, base:0, lost:[], broken:[], goddessGifts:[] };
   if(kind === "cleared"){
     ending.base = curScn.tier * 30;
     for(const it of runLoot){
@@ -845,7 +845,9 @@ function renderScenario(v, animate){
 function renderEnding(v){
   const node = curScn.nodes[curNodeId];
   v.appendChild(el("div","ending "+ending.kind, ending.kind === "cleared" ? "◇ 副本過關" : "◆ 你死了"));
-  v.appendChild(el("div","scene reveal")).textContent = node.scene;
+  v.appendChild(el("div","scene reveal")).textContent = ending.forceExit
+    ? "你拒絕了記憶的殘片。\n\n現在，殘片也拒絕了你。"
+    : node.scene;
 
   const n = el("div","notice");
   if(ending.kind === "cleared"){
