@@ -26,7 +26,7 @@ SCENARIOS["aquarium"] = {
     overflow:        { achievementRoll: true },
     skipSteer:       true,
     skipTurnLimit:   true,
-    autoDropPerNode: true,             // 進節點自動從 pool 擲掉落；每顆整局只擲一次，drop 即整局掉落機率
+    autoDropPerNode: true,             // 每回合進節點對 pool 擲掉落；drop 為每回合固定機率，尚未取得者每回合各自獨立擲一次
   },
   turnLimit: 15,
   steerAt: 10,

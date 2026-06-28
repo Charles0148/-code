@@ -65,7 +65,6 @@ let currency, inventory, runLoot, seen, unlockedScenarios, screen;
 let curScn, curScnId, curNodeId, turn, pendingLoot, pendingCheck, pendingReward, ending;
 let unlockedAchievements;
 let pendingAchievements = []; // 本次要顯示 popup 的成就佇列
-let autoDropRolled = new Set(); // 本場 autoDrop 已擲過的道具 id（每顆整局只擲一次）
 
 const SAVE_KEY = "mugen_save_v2";
 
@@ -254,8 +253,6 @@ function computeFinalBonus(inv){
 function rollAutoDrops(poolIds){
   for(const id of poolIds){
     const def = ITEMS[id]; if(!def) continue;
-    if(autoDropRolled.has(id)) continue;   // 整局每顆道具只擲一次：擲過（不論成敗）就不再擲
-    autoDropRolled.add(id);
     if(inventory.some(it => it.name === def.name)) continue;
     if(Math.random() >= def.drop) continue;
     const entry = {
@@ -293,7 +290,6 @@ function enterTier(tier){
   const id = drawScenario(tier);
   curScn = SCENARIOS[id]; curScnId = id; curNodeId = "start"; turn = 1;
   runLoot = []; pendingLoot = []; pendingCheck = null; pendingReward = 0;
-  autoDropRolled = new Set();
   runState = {};
   const _hooks = WINMODE_HOOKS[curScn.winMode];
   if(_hooks?.onEnter) _hooks.onEnter(runState);
