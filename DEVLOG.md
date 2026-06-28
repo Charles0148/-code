@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-06-28 — Dev 面板改為差異匯出；復原 autoDrop 誤改；調降 aquarium 掉落率
+
+狀態：index.html 差異匯出功能完成（未 commit）；metro_01 pool 移除 key（未 commit）；aquarium 掉落率已在前一 commit 更新完畢。
+
+做了什麼：
+- Dev 面板 Tab 1（道具）、Tab 0（商店）、Tab 4（匯出）全面改為差異匯出：頁面載入時對 ITEMS / SHOP_ITEMS / SCENARIOS[*].pool 各做基線快照，只有被修改的項目才顯示對應的匯出區塊（含所屬檔案提示與可複製 payload）；未改動則顯示提示文字「尚無變更，修改後自動出現」
+- 新增劇本 pool 差異偵測（buildPoolDiffExport）：pool 住在 SCENARIOS 而非 ITEMS，需獨立快照（SCENARIOS_POOL_BASELINE）與獨立 diff 函式；副本分配 chip 點擊後補發 change 事件（dispatchEvent）以觸發即時重整
+- 復原 autoDrop 誤修：前一 commit（e1b503f）誤改為整局每顆道具只擲一次（Set 記錄已擲），不符設計語意；本 session 確認正確行為是「每回合進節點獨立擲骰，已持有者跳過」，已在 7628eef 完全復原
+- 調降 aquarium 掉落率（已於上一 commit）：rusty_fish_knife 0.30→0.15、eye_hook 0.35→0.20
+- 作者透過 Dev 面板將廢棄地鐵站（metro_01）pool 移除「護理長的鑰匙」（key），差異匯出顯示正確，pool 已在工作目錄更新
+
+技術決策：
+- 差異匯出基線在 `const ITEMS_BASELINE = JSON.parse(JSON.stringify(ITEMS))` 時機點取（所有 data/*.js 載入後、引擎主 script 前），確保捕捉到純資料原始值 ← 若在引擎後取則可能含引擎動態注入的欄位
+- pool diff 顯示 `SCENARIOS["metro_01"]` grep 提示而非硬猜副本檔名 ← 副本 id（metro_01）與檔名（metro_01.js）恰好一致，但 aquarium id → 檔名是 aquarium_01.js，直接拼接會出錯，故統一用 grep 提示讓作者自行確認
+- 副本分配 chip 是 `<button>` 元素，點擊不會自然冒泡 input/change 事件；以 `chip.dispatchEvent(new Event("change", { bubbles:true }))` 補發
+
+下一步：
+- commit 並 push 差異匯出功能 + metro_01 pool 變更
+- 擴充副本數量（目前 5 個可玩，目標 10+）
+
+---
+
 ## 2026-06-28 — 拆檔重構驗收：通過，修正二個資料檔異常
 
 狀態：拆檔重構全七步驗收通過；repo 工作目錄乾淨，未 push。

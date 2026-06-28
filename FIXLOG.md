@@ -2,6 +2,83 @@
 
 ---
 
+## 2026-06-28 — autoDrop 語意誤解：誤改為整局只擲一次
+
+症狀：
+commit e1b503f 把 rollAutoDrops 改為使用 Set（autoDropRolled）記錄已擲過的道具，
+確保整局每顆道具只擲一次；7628eef 完全復原。
+
+根因：
+在修改前未向作者確認「drop 代表整局機率還是每回合機率」，逕自假設「整局只擲一次語意更合理」。
+實際設計是每回合進節點時獨立擲骰（per-node fixed probability），
+已持有的道具由 `inventory.some(it => it.name === def.name)` 擋掉重複取得，
+不需要 Set 記錄已擲狀態。
+
+錯誤直覺：
+「drop 是掉落率，整局只擲一次比較符合直覺（像 RPG 的全局掉落旗標）」——
+但此遊戲的設計是累積曝光：多回合探索、每回合都有獨立機會遇到道具，
+整局只擲一次會讓前幾回合沒掉的道具後面再也不會出現。
+
+正確修法：
+git revert e1b503f 邏輯，刪除 autoDropRolled Set 與相關 reset 程式碼，
+rollAutoDrops 恢復為對每個未持有的道具獨立 Math.random() < def.drop 判斷。
+
+波及檔案：
+- index.html（rollAutoDrops 函式，以及 runEnter 中的 autoDropRolled.clear() 呼叫）
+
+---
+
+## 2026-06-28 — 副本 pool 變更不出現在差異匯出
+
+症狀：
+Dev 面板點擊道具卡片的「副本分配」chip 移除某副本後，
+Tab 1 / Tab 4 的匯出區塊沒有顯示任何 pool 變更輸出。
+
+根因：
+ITEMS diff（getDataDiff(ITEMS, ITEMS_BASELINE)）只比較道具本身的屬性，
+pool 陣列住在 SCENARIOS[id].pool，根本不在 ITEMS 比較範圍內，
+因此 chip 點擊修改 pool 後，ITEMS diff 永遠為空，不觸發任何輸出。
+
+錯誤直覺：
+「副本分配 chip 修改的是道具與副本的關聯，應該會反映在道具的匯出裡」——
+實際上 chip 直接寫入 SCENARIOS[id].pool，與 ITEMS 物件完全分離。
+
+正確修法：
+1. 頁面載入時額外快照 SCENARIOS_POOL_BASELINE（各副本 pool 陣列的淺拷貝）
+2. 新增 getPoolDiff() 比較 SCENARIOS[*].pool 與基線
+3. 新增 buildPoolDiffExport() 渲染 pool 變更區塊（含 grep 提示 + 可複製的新 pool 陣列）
+4. Tab 1 與 Tab 4 的匯出渲染函式末尾呼叫 buildPoolDiffExport()
+
+波及檔案：
+- index.html（基線快照段、getPoolDiff、buildPoolDiffExport、Tab 1 / Tab 4 匯出渲染）
+
+---
+
+## 2026-06-28 — 副本分配 chip 點擊後差異匯出未即時更新
+
+症狀：
+點擊道具卡片的副本分配 chip 移除副本後，差異匯出區塊不自動重繪，
+需手動切換 Tab 或觸發其他 input 事件才會顯示 pool 變更。
+
+根因：
+差異匯出監聽 `input` / `change` 事件來觸發重繪；
+chip 是 `<button>` 元素，點擊只觸發 `click`，不冒泡 `change` 事件，
+因此 pool 已被修改但渲染函式未被呼叫。
+
+錯誤直覺：
+「chip 的 onclick handler 修改了 SCENARIOS pool，監聽器應該能感知到」——
+DOM 事件與資料變動是完全分離的；監聽器感知的是 DOM 事件，不是 JS 物件的屬性變化。
+
+正確修法：
+在 chip 的 onclick handler 末尾加一行：
+`chip.dispatchEvent(new Event("change", { bubbles:true }));`
+讓 chip 點擊也能觸發 change 冒泡，與其他 input 元素的行為一致。
+
+波及檔案：
+- index.html（buildCard 函式中 chip 的 onclick handler）
+
+---
+
 ## 2026-06-28 — items_core.js 工作目錄編碼損壞
 
 症狀：

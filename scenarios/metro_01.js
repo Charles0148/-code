@@ -2,7 +2,7 @@ SCENARIOS["metro_01"] = {
   title:"廢棄地鐵站", theme:"都市傳說", tier:1, locked:true, price:80,
   objective:"在末班車抵達前找到出口",
   win:"escape", turnLimit:15, steerAt:10, climaxNode:"last_train",
-  pool:["flashlight","candle","amulet","key"],
+  pool: ["flashlight","candle","amulet"],
   nodes:{
     start:{ scene:"你獨自走進一座標示「停用」的地鐵站。月台燈光昏黃，鐵軌方向傳來遠方悶雷般的聲響。\n看板上的時刻表仍在，末班車——十分鐘後。", choices:[
       { text:"搜查月台上的遺留物", loot:true, next:"platform" },
