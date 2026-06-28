@@ -33,7 +33,7 @@ Object.assign(ITEMS, {
     "domain": "bakery"
   },
   "baguette_bat_plain": {
-    "name": "法國麵包",
+    "name": "不願放手的法國麵包",
     // 普通帶出版：普通結局與一般真結局授予
     "effect": "一根法國麵包，似乎承載著許多回憶。即使你什麼都想不起來，它也始終不離不棄。",
     "value": 60,
