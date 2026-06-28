@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-06-29 — scenario_audit 設計陷阱：require 物件被當路由 id 誤報成幽靈
+
+情境：
+新增 tools/scenario_audit.js 時，反向測試 N2 注入 `require:{ not:"old_baseball" }`（契約 ❌ 未實作的物件閘門）。
+
+錯誤直覺：
+若把「蒐集引用集」與「require 檢查」混為一談——即無差別地把每個 choice 的 require 值丟進節點引用集——
+則 require 物件會被 String() 成 "[object Object]"，比對節點定義集時找不到，被誤報為「幽靈節點 [object Object]」。
+診斷會被導向「某處引用了不存在的節點」，完全遮蔽真正的問題：作者用了契約未實作的機制。
+
+正確設計：
+- 引用集只蒐集「字串型」路由目標（next / success / fail / check.success / check.fail / climaxNode），對非字串一律忽略
+- require 的合法性獨立成「檢查 2」：物件閘門、陣列含非字串、requireMemory 各自報「使用了契約未實作的機制」，並印出 sid / 節點 id / 違規值
+- 兩條檢查互不污染：路由完整性看節點圖，機制誤用看 choice 欄位形狀
+
+波及檔案：
+- tools/scenario_audit.js（addRef 僅收 typeof==="string"；require/requireMemory 獨立檢查 2）
+
+---
+
 ## 2026-06-29 — 成就定義未寫回檔案，觸發後無反應
 
 症狀：

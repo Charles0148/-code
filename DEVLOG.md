@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-06-29 — 新增 tools/scenario_audit.js（劇本結構稽核）+ /scenariocheck
+
+狀態：兩個 commit 完成（未 push）；正向 P1 + 反向 N1~N3 驗收全通過，工作目錄乾淨。
+
+做了什麼：
+- 新增 tools/scenario_audit.js，與 item_audit.js 並列、職責分離：item_audit 管道具 id/name，本工具只管劇本「結構」
+- 檢查 1 節點圖完整性：逐節點逐 choice 蒐集字串型路由目標（next / success / fail / check.success / check.fail）+ 劇本 climaxNode 併入引用集；幽靈節點（被引用未定義）計入退出碼，孤兒節點（定義未引用、非 start）僅 ⓘ 資訊不計退出碼
+- 檢查 2 契約未實作機制誤用：require 物件閘門 {not}/{any}、require 陣列含非字串、choice.requireMemory，三者出現即計入退出碼
+- 退出碼只由「幽靈節點 + 機制誤用」決定；孤兒不影響退出碼
+- 新增 .claude/skills/scenariocheck/SKILL.md，/scenariocheck 比照 /itemcheck 接線
+- 載入方式沿用 item_audit.js 的 global.SCENARIOS={}; eval(...)，加 UTF-8 BOM 剝除保護
+
+技術決策：
+- 只強制契約「明確標為 ❌ 未實作」的項目，不自行新增契約沒禁的規則 ← 本工具是契約的執法者，不是立法者
+- 引用集只收「字串型」目標、require 機制誤用獨立成檢查 2 ← 避免把 require 物件當路由 id 誤判成 [object Object] 幽靈，遮蔽真正診斷（見 FIXLOG 同日）
+- 不併入 item_audit.js ← 道具稽核與結構稽核職責分離，各自退出碼獨立
+
+下一步：
+- 擴充副本數量（目前 5 個可玩，目標 10+）
+- 每次新增/改劇本後執行 /scenariocheck 確認結構乾淨
+
+---
+
 ## 2026-06-29 — 成就觸發機制、Dev 匯出欄位化、中離訊息統一、版本號顯示
 
 狀態：全部 commit 並 push 至 GitHub（最新 ver. Test04）；repo 工作目錄乾淨。
