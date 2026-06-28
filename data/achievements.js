@@ -11,4 +11,14 @@ const ACHIEVEMENTS = {
     visible:  false,       // false = 未解鎖時顯示「???」
     reward:   null,        // { points:N } / { title:"稱號" } / { unlockScenario:"id" }
   },
+  ach_1782663164619: {
+    name:     "[隱藏成就] 全壘打",
+    hint:     "有些約定，真的可以揮擊出去",
+    icon:     "🏆",
+    rarity:   "red",
+    scenario: "bakery_01",
+    type:     "collect",
+    visible:  false,
+    reward:   null,
+  },
 };
