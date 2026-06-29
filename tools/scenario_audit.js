@@ -12,10 +12,13 @@
  *  檢查 2：契約未實作機制誤用（逐 choice）
  *    require 物件閘門 {not}/{any}、require 陣列含非字串、choice.requireMemory
  *    → 出現即 ❌ 錯誤（計入退出碼）
+ *  檢查 3：節點成就 id 存在性（逐節點）
+ *    node.achievement 指向 ACHIEVEMENTS 未定義的 id（成就幽靈）→ ❌ 錯誤（計入退出碼）
+ *    （只檢查節點層，對齊引擎：index.html 僅 if(node.achievement) unlockAchievement(...)）
  *
  *  用法（於 repo 根目錄執行）：  node tools/scenario_audit.js
  *  可選參數：  node tools/scenario_audit.js <repoRoot>   （預設為當前工作目錄）
- *  退出碼：    0 = 乾淨    1 = 有需處理的問題（僅由幽靈節點 + 機制誤用決定）
+ *  退出碼：    0 = 乾淨    1 = 有需處理的問題（由幽靈節點 + 機制誤用 + 成就幽靈決定）
  * ============================================================ */
 "use strict";
 const fs   = require("fs");
@@ -32,12 +35,26 @@ for(const f of scnFiles){
   eval(src.charCodeAt(0) === 0xFEFF ? src.slice(1) : src); // 信任自家劇本；剝除 UTF-8 BOM
 }
 
+/* ---- 載入 ACHIEVEMENTS（檢查 3 用）----
+ * achievements.js 為 `const ACHIEVEMENTS = {...}` 宣告式（非 SCENARIOS 的賦值式），
+ * 嚴格模式 eval 會把 const 綁進 eval 私有作用域，故在同一段 eval 末尾把它指回 global。 */
+global.ACHIEVEMENTS = {};
+const ACH_FILE = path.join(ROOT, "data", "achievements.js");
+try {
+  const asrc   = fs.readFileSync(ACH_FILE, "utf8");
+  const aclean = asrc.charCodeAt(0) === 0xFEFF ? asrc.slice(1) : asrc;
+  eval(aclean + "\n;global.ACHIEVEMENTS = ACHIEVEMENTS;");
+} catch(e){
+  console.error("⚠ 無法載入 data/achievements.js，檢查 3 將以空成就池進行：" + e.message);
+}
+
 /* ============================================================
  *  逐劇本稽核
  * ============================================================ */
 const scenarioReports = [];   // { sid, title, nodeCount, ghosts[], orphans[], misuse[] }
 let ghostCount  = 0;          // 計入退出碼
 let misuseCount = 0;          // 計入退出碼
+let badAchCount = 0;          // 計入退出碼
 
 for(const [sid, scn] of Object.entries(SCENARIOS)){
   const nodes = scn.nodes || {};
@@ -52,8 +69,15 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
 
   /* ---- 檢查 2：契約未實作機制誤用（逐 choice）---- */
   const misuse = [];
+  /* ---- 檢查 3：節點成就 id 存在性（逐節點）---- */
+  const badAch = [];
 
   for(const [nid, node] of Object.entries(nodes)){
+    // ── 檢查 3：node.achievement 指向的成就 id 必須已定義 ──
+    if(node.achievement && !(node.achievement in ACHIEVEMENTS)){
+      badAch.push(`節點 ${nid}：achievement="${node.achievement}" 指向不存在的成就 id（ACHIEVEMENTS 未定義）`);
+    }
+
     for(const c of (node.choices || [])){
       // ── 檢查 1：路由目標 ──
       addRef(c.next);
@@ -92,10 +116,11 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
 
   ghostCount  += ghosts.length;
   misuseCount += misuse.length;
+  badAchCount += badAch.length;
 
   scenarioReports.push({
     sid, title: scn.title || "(無標題)",
-    nodeCount: defined.size, ghosts, orphans, misuse,
+    nodeCount: defined.size, ghosts, orphans, misuse, badAch,
   });
 }
 
@@ -109,6 +134,8 @@ for(const r of scenarioReports){
   console.log(`   ${r.ghosts.length ? "❌" : "✅"} 幽靈節點：${r.ghosts.length ? r.ghosts.join(", ") : "無"}`);
   console.log(`   ${r.misuse.length ? "❌" : "✅"} 契約機制誤用：${r.misuse.length ? "" : "無"}`);
   r.misuse.forEach(m => console.log(`      - ${m}`));
+  console.log(`   ${r.badAch.length ? "❌" : "✅"} 成就幽靈（node.achievement 指向未定義 id）：${r.badAch.length ? "" : "無"}`);
+  r.badAch.forEach(a => console.log(`      - ${a}`));
   console.log(`   ⓘ 孤兒節點（已定義無引用；turnLimit 強制結束的 end 節點屬正常）：${r.orphans.length ? r.orphans.join(", ") : "無"}`);
 }
 
@@ -124,8 +151,10 @@ const report = (label, arr, fmt = x => x) => {
 
 const allGhosts = scenarioReports.flatMap(r => r.ghosts.map(g => `${r.sid}：${g}`));
 const allMisuse = scenarioReports.flatMap(r => r.misuse.map(m => `${r.sid} / ${m}`));
+const allBadAch = scenarioReports.flatMap(r => r.badAch.map(a => `${r.sid} / ${a}`));
 report("幽靈節點（被引用卻未定義）", allGhosts);
 report("契約未實作機制誤用", allMisuse);
+report("成就幽靈（node.achievement 指向未定義 id）", allBadAch);
 
 const allOrphans = scenarioReports.flatMap(r => r.orphans.map(o => `${r.sid}：${o}`));
 console.log(`\nⓘ 孤兒節點（不計入退出碼；僅靠 turnLimit 到達的 end 節點屬正常）：${allOrphans.length ? allOrphans.join(", ") : "無"}`);
