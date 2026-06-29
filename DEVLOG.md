@@ -2,9 +2,10 @@
 
 ---
 
-## 2026-06-29 — 新增 tools/scenario_audit.js（劇本結構稽核）+ /scenariocheck
+## 2026-06-29 — 新增劇本結構稽核 tools/scenario_audit.js（A2+B2）+ /scenariocheck
 
-狀態：兩個 commit 完成（未 push）；正向 P1 + 反向 N1~N3 驗收全通過，工作目錄乾淨。
+狀態：已 commit 並 push 至 GitHub（版本 Test06）；正向 P1 + 反向 N1~N3 驗收全通過，工作目錄乾淨。
+       repo 現有 6 個劇本結構全乾淨，可作為新劇本的回歸基準。
 
 做了什麼：
 - 新增 tools/scenario_audit.js，與 item_audit.js 並列、職責分離：item_audit 管道具 id/name，本工具只管劇本「結構」
@@ -15,11 +16,21 @@
 - 載入方式沿用 item_audit.js 的 global.SCENARIOS={}; eval(...)，加 UTF-8 BOM 剝除保護
 
 技術決策：
+- 工具放置選 A2（新開 scenario_audit.js）而非 A1（擴充 item_audit.js）← 切割依職責不依大小：item_audit 職責是「道具 id/name」，節點圖屬「劇本結構」，寧可兩支共用一點載入樣板，也不混職責、各自退出碼獨立
+- 本次範圍定為 B2（節點圖完整性 + 契約機制誤用），先讀過 item_audit 全文才定範圍 ← item_audit 已涵蓋的（檔內/跨檔重複 id、道具幽靈、name 撞車、domain、internal 配 carry）不重做，避免造重複輪子
 - 只強制契約「明確標為 ❌ 未實作」的項目，不自行新增契約沒禁的規則 ← 本工具是契約的執法者，不是立法者
 - 引用集只收「字串型」目標、require 機制誤用獨立成檢查 2 ← 避免把 require 物件當路由 id 誤判成 [object Object] 幽靈，遮蔽真正診斷（見 FIXLOG 同日）
-- 不併入 item_audit.js ← 道具稽核與結構稽核職責分離，各自退出碼獨立
+
+刻意排除（防範圍蔓延，留待各自工單）：
+- 節點成就 id 存在性檢查（node.achievement 指向的 id 是否真存在）— 真缺口，但需載入 achievements.js，本次不做
+- 「choice 沒有任何跳轉目標（點了沒去處）」— 既非幽靈也非契約誤用，現有 6 劇本無此情形，本次不做
+
+教訓：
+- 「先讀 → 實跑 → 才定範圍」這次有實效：原想開的「schema 驗證器」約七成已被 item_audit 做掉，沒讀那支就寫工單會大量重複，讀過才擋下重複輪子
+- 既有 item_audit 把未實作的 require 物件閘門當 id 丟進引用表會吐 [object Object] 幽靈（沉默誤判）；新工具明確報「契約未實作機制」（明確攔截）。已記錄於 FIXLOG
 
 下一步：
+- 節點成就 id 存在性檢查（需載 achievements.js）— 已知缺口，另開工單
 - 擴充副本數量（目前 5 個可玩，目標 10+）
 - 每次新增/改劇本後執行 /scenariocheck 確認結構乾淨
 
