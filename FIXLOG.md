@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-06-30 — 圖鑑陷阱：誤以為 aquarium 結局走 hook endKind 路徑
+
+情境：
+為圖鑑實作 node.endingId（進結局節點時記錄）。aquarium 是 accumulate winMode 的特殊副本，結局（node_cleared / node_dead）由 finalRoll 觸發。
+
+錯誤直覺：
+CLAUDE.md 的 hook 文件列出 onChoiceMade 可回傳 { endKind } 直接觸發結算，且 choose() 中該分支會「提早 return」——若據此假設 aquarium 結局走 endKind 路徑，會推論 node.endingId（與 node.achievement）在該路徑被跳過，進而以為「必須改引擎 hook 路徑才能記錄 aquarium 結局」，平白動到引擎。
+
+正確診斷：
+讀 data/winmodes.js 才發現 accumulate 的 onChoiceMade 只回傳 { overrideNextId: choice.success/fail }，**從不回傳 endKind**。因此 choose() 不走提早 return，而是照正常路徑跑到 processGrant → achievement → endingId → resolveEnd。aquarium 結局的 node.endingId 照常被記錄，引擎無須任何改動。已用 preview 實跑確認（endingId + 帶出 humanface_fish + 成就 三者皆正確）。
+
+教訓：
+契約文件「列出某能力存在」不等於「現有副本用到它」。endKind 路徑目前是死碼（無任何 winMode 使用）。動引擎前先讀真正的 winMode 實作，確認資料流實際走哪條分支。
+
+波及檔案：
+- 無（確認後未改引擎；node.endingId 走既有正常路徑即可）
+
+---
+
 ## 2026-06-29 — scenario_audit 設計陷阱：require 物件被當路由 id 誤報成幽靈
 
 情境：

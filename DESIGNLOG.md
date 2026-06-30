@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-06-30 — 副本圖鑑系統：蒐集語意、共通道具獨立區、雙重門檻
+
+劇本/設定定案：
+- 圖鑑三軸（新發明，當前真相）：每副本統計「結局 / 道具 / 成就」三類格子，蒐集率平攤（每格等權），全局率＝所有格數總和之比、非各副本率平均。
+- 道具蒐集語意（定為當前真相）：「真的帶出進永久背包」才算蒐集，不是「曾被授予」。故 carry:false（碎片、echo 球棒、internal、quest 工具）結構上不可能蒐集，manifest 一律不列入；分子在 resolveEnd「真正進永久背包」的提交點記錄。
+- 分母由作者 manifest 宣告、分子由持久層追蹤（新發明）：manifest（data/compendium.js）只宣告總格與內容，已解鎖由 seenEndings / carriedItems / unlockedAchievements 三集合決定。
+- 共通 vs 專屬道具（新發明）：跨副本掉落的核心道具（domain:"core" 且 carry:true，如護身符、羅盤）＝共通道具，獨立成 COMPENDIUM_COMMON 區、不掛在任一副本下；只屬單一副本的道具列在該副本。共通道具有專屬欄位 from（出沒來源），一般專屬道具沒有。
+- 雙重揭露門檻（作者逐次拍板定案）：① 副本須「曾進入」(visitedScenarios) 才出現在圖鑑；② 共通道具逐顆判定，須進過其 from 來源之一的副本才揭露（只玩不掉共通道具的副本＝麵包店，不揭露任何共通道具）；③ 共通道具的出沒行只列「已進過」的來源，未探索來源不洩漏。
+- 未解鎖顯示（作者定案）：未解鎖格一律遮為「？？？」（含非隱藏結局、道具、成就），蒐集率照樣顯示分數（如 3/5）。
+- bakery 五結局 endingId 命名定案：bakery_normal（留守）/ bakery_bad_1（聆聽後悔）/ bakery_bad_2（回麵包店）/ bakery_true（真結局）/ bakery_hidden（隱藏記憶，hidden:true）。
+
+設計原則/教訓：
+- 「蒐集＝帶出」要在結算的提交點記錄、不在授予點 ← 授予（processGrant）只代表這一局拿到，帶出與否由 resolveEnd 決定；記錄點選錯會把「死亡損失的道具」也算成蒐集。
+- 記錄用 id、執行期身份卻是 name，是一個落差 ← 背包 entry 原只存 name，圖鑑要以 id 為鍵，於是在 entry 建立點蓋 id。錯誤直覺是「用 name 反查 ITEMS 就好」——但 name→id 非保證唯一，且違反工單明訂的 id 鍵。
+- 共通道具若沿用「每副本各列一次」會與全域 carriedItems 衝突 ← 同一顆 amulet 在三個副本 pool，帶出一次三處同時亮、且重複計入分母。正解是抽出成獨立區、只計一次，並以 from 標來源。
+- 門檻設計要「逐顆」而非「整區」 ← 一開始把共通區做成「進過任一副本就顯示」，但麵包店不掉共通道具卻也會亮出共通區。修正為逐顆比對 from∩visited，整區只在至少一顆揭露時出現。
+
+有效的提示詞：
+- 「麵包店不會掉共用的道具 所以玩麵包店不應該跳出共用道具的圖鑑」← 一句話點出「整區顯示」的設計瑕疵，逼出「逐顆 from∩visited 揭露」的正確粒度。
+- 「我希望他只列出已進過的來源」← 把出沒欄位從「全部來源」收窄為「已探索來源」，避免提前洩漏未玩副本名稱。
+- 工單以「閘門：先提案經作者確認才寫入」管控 endingId 寫入劇本檔，先讀真檔再提案，避免臆造 id。
+
+給 Claude Code 的交接（若有）：
+- 新引擎欄位 endingId 已併入能力契約（CLAUDE.md §5）。圖鑑持久層三集合、COMPENDIUM/COMPENDIUM_COMMON 為當前真相。
+- aquarium 結局走正常路徑（accumulate 回傳 overrideNextId 而非 endKind），endingId 無須改 hook。若未來有 winMode 真的用 endKind 提早結束，該路徑目前不會處理 node.endingId/achievement，屆時需補。
+
+下一步：
+- endingId↔manifest 雙向稽核（scenario_audit 擴充）：宣告的 endingId 是否真存在於某節點、節點 endingId 是否都進了 manifest、manifest items 是否真 carry:true 且非 internal。
+- 擴充副本（目標 10+）。
+
+---
+
 ## 2026-06-28 — 資料／樣式拆檔重構：ITEMS 分檔 + domain 來源域標記
 
 劇本/設定定案：

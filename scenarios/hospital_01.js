@@ -50,7 +50,7 @@ SCENARIOS["hospital_01"] = {
       { text:"抓住門把全力衝出", danger:2, check:{type:"敏捷",dc:14,success:"cleared",fail:"dead"} },
       { text:"不理背後，深呼吸，穩穩推開門", danger:3, reward:35, check:{type:"膽識",dc:16,success:"cleared",fail:"dead"} },
     ]},
-    cleared:{ scene:"鐵門在你掌心讓步，冷風灌入。你踏進真正的夜裡——身後，醫院的燈一盞盞熄滅，走廊的聲音也消失了。", end:"cleared" },
-    dead:{ scene:"那東西比你快。黑暗合攏，再也沒有走廊，也沒有出口。", end:"dead" },
+    cleared:{ scene:"鐵門在你掌心讓步，冷風灌入。你踏進真正的夜裡——身後，醫院的燈一盞盞熄滅，走廊的聲音也消失了。", end:"cleared", endingId:"hospital_escape" },
+    dead:{ scene:"那東西比你快。黑暗合攏，再也沒有走廊，也沒有出口。", end:"dead", endingId:"hospital_dead" },
   }
 };

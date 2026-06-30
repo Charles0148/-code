@@ -456,6 +456,21 @@
     padding-bottom:6px; border-bottom:1px solid var(--line);
   }
   .ach-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  /* 圖鑑：副本內三類格子的小分類標題（結局／道具／成就） */
+  .comp-cat{
+    font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+    color:var(--ink-dim); margin:10px 0 6px; padding-left:2px;
+  }
+  /* 圖鑑：共通道具區的引言 */
+  .comp-intro{
+    font-size:12px; color:var(--ink-dim); line-height:1.6;
+    margin:2px 0 10px; padding-left:2px;
+  }
+  /* 圖鑑：共通道具的專屬欄位「出沒來源」 */
+  .comp-source{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+    color:var(--brass); margin-top:5px;
+  }
   .ach-card{
     display:flex; align-items:center; gap:14px;
     border:1px solid var(--line); border-radius:3px; padding:12px 14px;

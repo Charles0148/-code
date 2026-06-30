@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-06-30 — 副本圖鑑系統（持久層 + endingId + 帶出記錄 + manifest + UI + 共通道具區）；版本 Test08
+
+狀態：已 commit 並 push（版本 Test08）。/scenariocheck、/itemcheck 皆 exit 0；preview 實跑驗收全通過。
+
+做了什麼：
+- 引擎持久層新增三個只增不刪集合（存進同一份 mugen_save_v2）：seenEndings（已見結局 id）、carriedItems（已帶出道具 id）、visitedScenarios（曾進入副本 id）。saveState/loadState/init 三處同步。
+- 節點欄位 endingId：進節點時於 processGrant 之後、resolveEnd 之前 recordEnding，時機與既有 achievement 欄位完全相同；無 endingId 節點行為不變。
+- 帶出記錄（recordCarried）：三個 runLoot entry 建立點（processGrant / rollDrops / rollAutoDrops）蓋上 id；resolveEnd 三條「真正進永久背包」提交點（cleared 的 carried、強制退出的 goddessGifts、一般失敗的 escaped 奇蹟逃脫）呼叫 recordCarried，以 id 為鍵；內含 ITEMS[id].internal 額外防線。
+- visitedScenarios 在 enterTier（唯一進入點，含 DEV 強制）記錄。
+- 新增 data/compendium.js（COMPENDIUM manifest + COMPENDIUM_COMMON 共通道具），index.html 在引擎主體前載入。
+- 6 個副本 10 個結局節點全部接上 endingId；manifest 收錄全 6 副本。
+- 新增 renderCompendium UI（Hub「副本圖鑑」入口）：按副本分區（結局/道具/成就，空類別跳過）+ 獨立「共通道具」區；未解鎖一律「？？？」；蒐集率平攤、全局率為所有格數總和之比。
+- 共通道具（domain:"core" 且 carry:true：amulet、compass）獨立成區、不掛在任一副本下，避免「帶一顆 amulet 三個副本同時亮」。專屬欄位 from（出沒來源），UI 解析為副本名。
+- 副本門檻：副本須「曾進入」才出現在圖鑑；共通道具逐顆判定，須進過其 from 來源之一才揭露（只玩麵包店不揭露任何共通道具）；出沒行只列「已進過」的來源。
+
+技術決策：
+- 帶出記錄以 id 為鍵，但背包 entry 原本只存 name → 在三個 runLoot entry 建立點蓋 id，提交時讀 it.id（商店道具不進 runLoot、無 id，自然不記錄）。internal 雙重防線（loop 頂的 it.internal + 提交點的 ITEMS[id].internal）順帶補上 rollDrops entry 未複製 internal 旗標的潛在缺口。
+- aquarium（accumulate winMode）結局走 choose() 正常路徑：因 onChoiceMade 只回傳 overrideNextId、不回傳 endKind，故 node.endingId 照常被記錄，引擎 hook 路徑無須改動（已實跑確認 endingId + 帶出 + 成就三者皆正確）。
+- 共通道具用獨立 const COMPENDIUM_COMMON（非塞進 COMPENDIUM 的 scenario key），UI 以 typeof 防衛性讀取。
+
+下一步：
+- 把 endingId 納入 scenario_audit 的交叉稽核（endingId↔manifest 雙向齊全、manifest 宣告道具是否真 carry:true）— 另開工單。
+- 擴充副本數量（目前 6 個，目標 10+）。
+- 寶物庫系統（成就累積觸發）。
+
+---
+
 ## 2026-06-29 — 新增劇本結構稽核 tools/scenario_audit.js（A2+B2）+ /scenariocheck
 
 狀態：已 commit 並 push 至 GitHub（版本 Test06）；正向 P1 + 反向 N1~N3 驗收全通過，工作目錄乾淨。

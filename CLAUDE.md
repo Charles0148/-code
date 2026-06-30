@@ -26,6 +26,7 @@
     items_aquarium.js           ← ITEMS：水族館專屬道具（domain:"aquarium"，slot:null）
     items_bakery.js             ← ITEMS：麵包店專屬道具（domain:"bakery"）
     winmodes.js                 ← registerWinMode 登記（引擎主 script 之後載入）
+    compendium.js               ← COMPENDIUM 圖鑑 manifest + COMPENDIUM_COMMON 共通道具（引擎前載入）
   scenarios/
     hospital_01.js              ← 廢棄醫院（T1，普通）
     store_01.js                 ← 深夜便利商店（T1，普通）
@@ -35,6 +36,7 @@
     bakery_01.js                ← 凌晨四點的麵包店（T1，特殊劇本）
   tools/
     item_audit.js               ← 道具稽核工具（node tools/item_audit.js）
+    scenario_audit.js           ← 劇本結構稽核（幽靈節點 + 契約誤用 + 成就幽靈）
 ```
 
 ### index.html 的 script 載入順序（不可任意調換）
@@ -43,8 +45,9 @@
 3. `data/items_core.js`、`data/items_aquarium.js`、`data/items_bakery.js`（Object.assign 合併）
 4. `const SCENARIOS = {};`（空宣告）
 5. `scenarios/*.js`（各副本定義）
-6. 引擎主 `<script>`（含 WIN_CONDITIONS、WINMODE_HOOKS、registerWinMode 等）
-7. `data/winmodes.js`（必須在引擎之後，registerWinMode 函式才存在）
+6. `data/compendium.js`（COMPENDIUM 圖鑑 manifest；引擎 render 時才讀，置於引擎前即可）
+7. 引擎主 `<script>`（含 WIN_CONDITIONS、WINMODE_HOOKS、registerWinMode 等）
+8. `data/winmodes.js`（必須在引擎之後，registerWinMode 函式才存在）
 
 ### 新增道具
 - 跨副本通用道具 → 加進 `data/items_core.js`，`domain:"core"`
@@ -163,11 +166,12 @@ SCENARIOS["id"] = {
 | 背包條件選項 | `require` 欄位：背包無指定道具則隱藏 |
 | 結算 | 過關：carry 道具保留、其餘變賣；死亡：本場道具消失 |
 | 10% 奇蹟逃脫 | 死亡時 carry 道具有 10% 機率保住 |
-| localStorage 存檔 | key: `mugen_save_v2`；存 currency/inventory/seen/unlockedScenarios/equipped/unlockedAchievements |
+| localStorage 存檔 | key: `mugen_save_v2`；存 currency/inventory/seen/unlockedScenarios/equipped/unlockedAchievements/seenEndings/carriedItems/visitedScenarios |
 | 商店 | 買裝備、賣道具、解鎖副本 |
 | 成就系統 | ACHIEVEMENTS 定義、解鎖 Popup、Hub 成就畫面（按劇本分組） |
 | WINMODE_HOOKS | 特殊劇本擴充機制（見第 5 節） |
 | accumulate winMode | 通用：累積變數、最終機率判定；aquarium 使用此機制 |
+| 副本圖鑑 | 按副本統計結局/道具/成就蒐集；共通道具獨立區（domain:"core" carry 道具）；持久層 seenEndings/carriedItems/visitedScenarios |
 | DEV 面板 | 6 個 Tab（見下方） |
 
 ### DEV 面板 Tab 說明
@@ -229,6 +233,33 @@ node_hidden_final: {
   scene: "..."
 }
 ```
+
+---
+
+### 節點結局記錄 endingId（圖鑑用）
+
+節點物件上可設 `endingId: "字串"`。引擎進入該節點時把它加入持久集合 `seenEndings`（圖鑑「已見結局」）。
+
+- 觸發時機：與 `achievement` **完全相同**——`processGrant` 之後、`resolveEnd` 之前。
+- 無條件記錄、不做任何過濾；無 `endingId` 的節點行為不變（向後相容）。
+- 可與 `achievement`、`end` 同節點並存（bakery `node_hidden_final` 三者皆有）。
+- ⚠️ 限制：若未來有 winMode 在 `onChoiceMade` 回傳 `endKind` 走 `choose()` 提早 return 路徑，該路徑目前**不處理** `endingId` / `achievement`。現有 accumulate 回傳 `overrideNextId` 走正常路徑，不受影響。
+
+```js
+node_end_true: {
+  end: "cleared",
+  endingId: "bakery_true",
+  scene: "..."
+}
+```
+
+### 圖鑑持久層與 manifest（當前真相）
+
+- 持久集合（只增不刪，存於 `mugen_save_v2`）：`seenEndings`（結局 id）、`carriedItems`（帶出道具 id）、`visitedScenarios`（曾進入副本 id）。
+- `carriedItems` 記錄點＝`resolveEnd` 中道具「真正進永久背包」的三處提交（cleared 的 carried、強制退出的 goddessGifts、一般失敗的 escaped 奇蹟逃脫）；以 **id** 為鍵；`ITEMS[id].internal` 為真者一律不記錄。entry 的 `id` 於 `processGrant` / `rollDrops` / `rollAutoDrops` 建立時蓋上（商店道具不進 runLoot、無 id，自然不記錄）。
+- `visitedScenarios` 於 `enterTier`（唯一進入點，含 DEV 強制）記錄。
+- 分母由 `data/compendium.js` 宣告：`COMPENDIUM`（按副本：`endings` / `items` / `achievements`）＋ `COMPENDIUM_COMMON`（共通道具，含專屬欄位 `from` 出沒來源）。`items` **只列 carry:true 且非 internal** 道具。
+- 顯示門檻：副本須在 `visitedScenarios` 才出現於圖鑑；共通道具逐顆比對 `from`∩`visitedScenarios` 才揭露（只玩不掉共通道具的副本不會揭露任何共通道具）；未解鎖格遮為「？？？」；共通道具出沒行只列已進過的來源。
 
 ---
 

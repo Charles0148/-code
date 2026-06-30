@@ -39,7 +39,7 @@ SCENARIOS["metro_01"] = {
       { text:"衝向出口，不要回頭", danger:2, check:{type:"敏捷",dc:14,success:"cleared",fail:"dead"} },
       { text:"直視車門口的輪廓，命令它走", danger:3, reward:35, check:{type:"膽識",dc:16,success:"cleared",fail:"dead"} },
     ]},
-    cleared:{ scene:"你衝上地面，街燈和車聲一起灌進來。身後，地鐵入口的鐵門緩緩關閉，裡面的一切消失在黑暗裡。", end:"cleared" },
-    dead:{ scene:"那列車停下了。車門打開。你不記得之後發生的事，只知道你再也沒有離開那座車站。", end:"dead" },
+    cleared:{ scene:"你衝上地面，街燈和車聲一起灌進來。身後，地鐵入口的鐵門緩緩關閉，裡面的一切消失在黑暗裡。", end:"cleared", endingId:"metro_escape" },
+    dead:{ scene:"那列車停下了。車門打開。你不記得之後發生的事，只知道你再也沒有離開那座車站。", end:"dead", endingId:"metro_dead" },
   }
 };

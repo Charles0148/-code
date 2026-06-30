@@ -42,7 +42,7 @@ SCENARIOS["store_01"] = {
       { text:"在黎明前重啟主電源", danger:2, check:{type:"敏捷",dc:14,success:"win",fail:"dead"} },
       { text:"直視它，命令它離開這裡", danger:3, reward:40, check:{type:"膽識",dc:17,success:"win",fail:"dead"} },
     ]},
-    win:{ scene:"電源重啟的瞬間，時鐘「喀」地跳到三點零一分。叮咚——真正的早班店員推門進來，陽光跟著灑進店裡。那個「你」消失了。", end:"cleared" },
-    dead:{ scene:"時鐘永遠停在三點。那第二個你，慢慢走向收銀台，伸出手——「換你了。」", end:"dead" },
+    win:{ scene:"電源重啟的瞬間，時鐘「喀」地跳到三點零一分。叮咚——真正的早班店員推門進來，陽光跟著灑進店裡。那個「你」消失了。", end:"cleared", endingId:"store_survive" },
+    dead:{ scene:"時鐘永遠停在三點。那第二個你，慢慢走向收銀台，伸出手——「換你了。」", end:"dead", endingId:"store_dead" },
   }
 };

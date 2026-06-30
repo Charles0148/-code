@@ -191,6 +191,7 @@ SCENARIOS["bakery_01"] = {
 
     node_bad_kaikai: {
       end: "dead", // Bad End #1（照原稿文字）
+      endingId: "bakery_bad_1", // 圖鑑：聆聽〔後悔〕，車禍片段
       scene: "我仔細聆聽〔後悔〕的話——\n「對不起……\n都是因為我……\n如果我當時……\n是不是……就不會……」\n懊惱的情緒瞬間全部湧上，我在房內驚醒，想起了那些被我塵封已久的回憶——\n沉寂漆黑的夜裡、劃破黑暗的喇叭聲、紮實的碰撞聲、被拋在空中的她無力墜落、炸開的血漬濺滿了我的眼前。\n我：「對不起……讓妳久等了……我……馬上就來……」\n\n〔Bad Ending〕"
     },
 
@@ -282,11 +283,13 @@ SCENARIOS["bakery_01"] = {
     node_normal_end: {
       grant: ["baguette_bat_plain"],
       end: "cleared", // 普通結局（算過關）。〔房租〕＝收尾台詞，不做戰鬥。
+      endingId: "bakery_normal", // 圖鑑：留在原地＝留守結局
       scene: "逃避：「這樣就好。」\n逃避：「反正麵包店還在。」\n逃避：「法國麵包也還在。」\n逃避：「……這樣……就好。」\n逃避慢慢轉身離開，消失在霧裡。\n\n凌晨四點，我再次在麵包店醒來。\n法國麵包：「早安，起床。」\n我：「……早。」\n法國麵包：「今天有怪物要打。」（指著門口）\n系統提示：發現怪物！名稱：房租。\n我：「……知道了。」\n（我和法國麵包一起，走向店門口。）\n\n〔普通結局：凌晨四點的麵包店〕"
     },
 
     node_bad_dream: {
       end: "dead", // Bad End #2（照原稿文字）
+      endingId: "bakery_bad_2", // 圖鑑：轉身回麵包店，繼續做夢
       scene: "我轉身回到麵包店。\n店裡空無一人。我發現法國麵包不見了，桌上只剩下一支普通的、不會說話的法國麵包。\n系統提示：你決定繼續做夢。\n\n〔Bad Ending〕"
     },
 
@@ -330,6 +333,7 @@ SCENARIOS["bakery_01"] = {
     node_end_true: {
       grant: ["baguette_bat_plain"],
       end: "cleared",
+      endingId: "bakery_true", // 圖鑑：真結局《沒有如果》
       scene: "予舟輕輕閉上眼。窗外，天就要亮了。\n\n〔真結局：《沒有如果》〕"
     },
 
@@ -402,6 +406,7 @@ SCENARIOS["bakery_01"] = {
     node_hidden_final: {
       end: "cleared",
       achievement: "ach_1782663164619",
+      endingId: "bakery_hidden", // 圖鑑：真結局＋隱藏記憶（hidden 格）
       scene: "予舟輕輕閉上眼。這一次，掌心裡的重量，他再也不會忘記。\n\n〔真結局＋隱藏記憶：《沒有如果》〕"
     },
 

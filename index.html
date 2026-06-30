@@ -40,6 +40,9 @@
 <script src="scenarios/aquarium_01.js"></script>
 <script src="scenarios/bakery_01.js"></script>
 
+<!-- 圖鑑 manifest：分母宣告（分子由持久層 seenEndings/carriedItems/unlockedAchievements 追蹤） -->
+<script src="data/compendium.js"></script>
+
 <script>
 /* ===========================================================================
    無限流 · 副本　（純前端、無執行時 AI 版本）
@@ -73,6 +76,8 @@ Object.keys(SCENARIOS).forEach(sid => {
 let currency, inventory, runLoot, seen, unlockedScenarios, screen;
 let curScn, curScnId, curNodeId, turn, pendingLoot, pendingCheck, pendingReward, ending;
 let unlockedAchievements;
+let seenEndings, carriedItems;   // 圖鑑持久層：已見結局 id / 已帶出道具 id（只增不刪）
+let visitedScenarios;            // 圖鑑持久層：曾進入過的副本 id（只增不刪；決定該副本是否出現在圖鑑）
 let pendingAchievements = []; // 本次要顯示 popup 的成就佇列
 
 const SAVE_KEY = "mugen_save_v2";
@@ -107,6 +112,9 @@ function saveState(){
       unlockedScenarios: [...unlockedScenarios],
       equippedIdx,
       unlockedAchievements: [...unlockedAchievements],
+      seenEndings:  [...seenEndings],
+      carriedItems: [...carriedItems],
+      visitedScenarios: [...visitedScenarios],
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch(e){}
@@ -122,6 +130,9 @@ function loadState(){
     seen      = { 1:new Set(data.seen[1] ?? []), 2:new Set(data.seen[2] ?? []) };
     unlockedScenarios = data.unlockedScenarios ? new Set(data.unlockedScenarios) : defaultUnlocked();
     unlockedAchievements = data.unlockedAchievements ? new Set(data.unlockedAchievements) : new Set();
+    seenEndings  = data.seenEndings  ? new Set(data.seenEndings)  : new Set();
+    carriedItems = data.carriedItems ? new Set(data.carriedItems) : new Set();
+    visitedScenarios = data.visitedScenarios ? new Set(data.visitedScenarios) : new Set();
     equipped = defaultEquipped();
     if(data.equippedIdx){
       for(const slot in data.equippedIdx){
@@ -144,6 +155,8 @@ function init(){
   seen = {1:new Set(), 2:new Set()};
   unlockedScenarios = defaultUnlocked();
   unlockedAchievements = new Set();
+  seenEndings = new Set(); carriedItems = new Set();
+  visitedScenarios = new Set();
   equipped = defaultEquipped();
   pendingLootItems = []; pendingAchievements = [];
   loadState();
@@ -185,6 +198,7 @@ function rollDrops(poolIds){
     const def = ITEMS[id];
     if(Math.random() < def.drop){
       const entry = {
+        id,
         name:def.name, effect:def.effect, value:def.value, carry:def.carry,
         check:def.check, bonus:def.bonus, slot:def.slot, icon:def.icon || "📦",
         rarity:def.rarity || "white", finalBonus:def.finalBonus || 0
@@ -237,6 +251,22 @@ function unlockAchievement(id){
   saveState();
 }
 
+/* ── 圖鑑：記錄已見結局（只增不刪）。進入帶 endingId 的節點時呼叫，不做任何過濾。── */
+function recordEnding(id){
+  if(seenEndings.has(id)) return;
+  seenEndings.add(id);
+  saveState();
+}
+
+/* ── 圖鑑：記錄已帶出道具（以 id 為鍵）。只在 resolveEnd 的「真正進永久背包」提交點呼叫。──
+   額外防線：ITEMS[id].internal 為真者一律不記錄，防止有人誤把 internal 寫成 carry:true 時滲漏。 */
+function recordCarried(it){
+  if(!it.id) return;                  // 無 id（如商店購入道具）不屬副本帶出，跳過
+  if(ITEMS[it.id]?.internal) return;  // 隱形標記絕不進圖鑑
+  carriedItems.add(it.id);
+  // 持久化交給呼叫端的 resolveEnd 末尾 saveState()（與既有結算存檔同一次）
+}
+
 /* ── 成就骰（overflow% = 每筆成就的觸發機率）── */
 function triggerAchievementRoll(overflow){
   if(overflow <= 0) return;
@@ -265,6 +295,7 @@ function rollAutoDrops(poolIds){
     if(inventory.some(it => it.name === def.name)) continue;
     if(Math.random() >= def.drop) continue;
     const entry = {
+      id,
       name:def.name, effect:def.effect, value:def.value, carry:def.carry,
       check:def.check||null, bonus:def.bonus||0, slot:def.slot||null,
       icon:def.icon||"📦", rarity:def.rarity||"white", finalBonus:def.finalBonus||0
@@ -298,6 +329,7 @@ function enterTier(tier){
   }
   const id = drawScenario(tier);
   curScn = SCENARIOS[id]; curScnId = id; curNodeId = "start"; turn = 1;
+  if(!visitedScenarios.has(id)){ visitedScenarios.add(id); saveState(); } // 圖鑑：記錄曾進入此副本
   runLoot = []; pendingLoot = []; pendingCheck = null; pendingReward = 0;
   runState = {};
   const _hooks = WINMODE_HOOKS[curScn.winMode];
@@ -315,6 +347,7 @@ function processGrant(node){
     // 同名道具已在背包則跳過（避免重複授予）
     if(inventory.some(it => it.name === def.name)) continue;
     const entry = {
+      id,
       name:def.name, effect:def.effect, value:def.value, carry:def.carry,
       check:def.check||null, bonus:def.bonus||0, slot:def.slot||null,
       icon:def.icon||"📦", rarity:def.rarity||"white",
@@ -379,6 +412,7 @@ function choose(choice){
   const node = curScn.nodes[nextId];
   processGrant(node);
   if(node.achievement) unlockAchievement(node.achievement);
+  if(node.endingId) recordEnding(node.endingId);   // 時機基準同 achievement：processGrant 之後、resolveEnd 之前
   if(node.end){ resolveEnd(node.end); }
   render(true);
 }
@@ -398,7 +432,7 @@ function resolveEnd(kind, isForceExit){
     ending.base = curScn.tier * 30;
     for(const it of runLoot){
       if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
-      if(it.carry){ ending.carried.push(it.name); }
+      if(it.carry){ ending.carried.push(it.name); recordCarried(it); } // 真正進永久背包→記入圖鑑
       else { removeFromInventory(it); ending.consumed.push(it.name); ending.sold += it.value; }
     }
     currency += ending.base + ending.sold;
@@ -410,7 +444,7 @@ function resolveEnd(kind, isForceExit){
       for(const it of runLoot){
         if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
         if(EPIC_RARITIES.has(it.rarity) && Math.random() < GODDESS_CHANCE){
-          ending.goddessGifts.push(it.name); // 帶出，留在 inventory
+          ending.goddessGifts.push(it.name); recordCarried(it); // 帶出，留在 inventory→記入圖鑑
         } else {
           removeFromInventory(it); ending.lost.push(it.name);
         }
@@ -420,7 +454,7 @@ function resolveEnd(kind, isForceExit){
       for(const it of runLoot){
         if(it.internal){ removeFromInventory(it); continue; } // 隱形標記：靜默清除，不列入任何結算清單
         if(it.carry && Math.random() < CARRY_ESCAPE_CHANCE){
-          ending.escaped.push(it.name);
+          ending.escaped.push(it.name); recordCarried(it); // 奇蹟逃脫帶出→記入圖鑑
         } else {
           removeFromInventory(it); ending.lost.push(it.name);
         }
@@ -461,6 +495,7 @@ function render(animate){
   else if(screen === "scenario")  renderScenario(v, animate);
   else if(screen === "ending")    renderEnding(v);
   else if(screen === "achievements") renderAchievements(v);
+  else if(screen === "compendium") renderCompendium(v);
   // 非裝備頁面時移除底部行動列
   if(screen !== "equip"){
     const bar = document.getElementById("equip-action-bar");
@@ -706,6 +741,8 @@ function renderHub(v){
   const achCount = [...unlockedAchievements].filter(id => ACHIEVEMENTS[id]).length;
   const achBtn = mkAct(`成就系統　${achCount}／${Object.keys(ACHIEVEMENTS).length}`, "▸");
   achBtn.onclick = () => { screen = "achievements"; render(); }; acts.appendChild(achBtn);
+  const compBtn = mkAct("副本圖鑑", "▸");
+  compBtn.onclick = () => { screen = "compendium"; render(); }; acts.appendChild(compBtn);
   v.appendChild(acts);
 
   const resetBtn = el("button","bag-btn");
@@ -937,6 +974,137 @@ function renderAchievements(v){
   v.appendChild(footnote());
 }
 
+/* =============================== 副本圖鑑 ================================== */
+// 讀 COMPENDIUM 分區渲染：每副本三類格子（結局／道具／成就）。
+// 副本門檻：玩家「曾進入過」(visitedScenarios) 的副本才出現在圖鑑，否則整個不顯示。
+// 解鎖判定：結局→seenEndings、道具→carriedItems、成就→unlockedAchievements。
+// 顯示規則：已解鎖→顯示內容（道具名／註解即時查 ITEMS[id]，不從 manifest 取）；
+//          未解鎖→一律遮為「？？？」（含非隱藏結局、道具、成就）。蒐集率照樣平攤計算（如 3/5）。
+function renderCompendium(v){
+  v.appendChild(el("h2","screen-title","副本圖鑑"));
+
+  // 只收錄「有 manifest 且曾進入過」的副本
+  const sids = Object.keys(COMPENDIUM).filter(sid => visitedScenarios.has(sid));
+  if(sids.length === 0){
+    v.appendChild(el("div","ach-stat","圖鑑尚無紀錄。進入並探索副本後，該副本才會在此解鎖。"));
+    const acts0 = el("div","actions");
+    const back0 = mkAct("返回記憶狹間","←",null,null,"primary");
+    back0.onclick = () => { screen = "hub"; render(); };
+    acts0.appendChild(back0); v.appendChild(acts0);
+    return;
+  }
+
+  // 共通道具（跨副本核心道具，獨立成區，不掛在任一副本下）
+  // 揭露條件：玩家須進過該道具 from 來源之一的副本——只玩了不掉共通道具的副本（如麵包店）不會揭露任何共通道具。
+  const commonDef   = (typeof COMPENDIUM_COMMON !== "undefined") ? COMPENDIUM_COMMON : null;
+  const allCommon   = (commonDef && commonDef.items) ? commonDef.items : [];
+  const commonItems = allCommon.filter(ci => (ci.from || []).some(fid => visitedScenarios.has(fid)));
+  const commonDone  = commonItems.filter(ci => carriedItems.has(ci.id)).length;
+
+  // 全局率＝所有副本格 + 共通道具格 的總和之比（非各區率平均）
+  let gDone = commonDone, gTotal = commonItems.length;
+  const sections = sids.map(sid => {
+    const c = COMPENDIUM[sid];
+    const endings = c.endings || [];
+    const items   = c.items   || [];
+    const achs    = c.achievements || [];
+    const eDone = endings.filter(e => seenEndings.has(e.id)).length;
+    const iDone = items.filter(id => carriedItems.has(id)).length;
+    const aDone = achs.filter(id => unlockedAchievements.has(id)).length;
+    const done  = eDone + iDone + aDone;
+    const total = endings.length + items.length + achs.length;
+    gDone += done; gTotal += total;
+    return { sid, c, endings, items, achs, done, total };
+  });
+
+  const gPct = gTotal ? Math.round(gDone / gTotal * 100) : 0;
+  const stat = el("div","ach-stat");
+  stat.innerHTML = `全圖鑑蒐集率 <b>${gPct}%</b>（${gDone} / ${gTotal}）`;
+  v.appendChild(stat);
+
+  const mkCard = (got, iconTxt, nameHtml, hintTxt) => {
+    const card = el("div","ach-card " + (got ? "unlocked" : "locked"));
+    card.appendChild(el("div","ach-icon", got ? iconTxt : "❓"));
+    const body = el("div","ach-body");
+    body.innerHTML = `<div class="ach-name">${got ? nameHtml : "？？？"}</div>`+
+                     `<div class="ach-hint">${got ? hintTxt : "未解鎖"}</div>`;
+    card.appendChild(body);
+    return card;
+  };
+
+  sections.forEach(({ sid, c, endings, items, achs, done, total }) => {
+    const rate = total ? Math.round(done / total * 100) : 0;
+    v.appendChild(el("div","ach-group-label", `${c.name || sid}　${rate}%（${done} / ${total}）`));
+
+    // 結局（一定有；未解鎖一律 ？？？）
+    if(endings.length){
+      v.appendChild(el("div","comp-cat","結局"));
+      const eList = el("div","ach-list");
+      endings.forEach(e => eList.appendChild(
+        mkCard(seenEndings.has(e.id), "🏁", e.label, "已達成")));
+      v.appendChild(eList);
+    }
+
+    // 專屬道具（一般副本可能無 → 整類跳過；名／註解即時查 ITEMS）
+    if(items.length){
+      v.appendChild(el("div","comp-cat","道具"));
+      const iList = el("div","ach-list");
+      items.forEach(id => {
+        const def = ITEMS[id] || {};
+        iList.appendChild(mkCard(carriedItems.has(id),
+          def.icon || "📦", `<span ${rarNameClass(def.rarity)}>${def.name || id}</span>`, def.effect || ""));
+      });
+      v.appendChild(iList);
+    }
+
+    // 成就（多數副本無 → 整類跳過）
+    if(achs.length){
+      v.appendChild(el("div","comp-cat","成就"));
+      const aList = el("div","ach-list");
+      achs.forEach(id => {
+        const ach = ACHIEVEMENTS[id] || {};
+        aList.appendChild(mkCard(unlockedAchievements.has(id),
+          ach.icon || "🏆", `<span ${rarNameClass(ach.rarity)}>${ach.name || id}</span>`, ach.hint || ""));
+      });
+      v.appendChild(aList);
+    }
+  });
+
+  // ── 共通道具區（含專屬欄位：出沒來源；即使未解鎖也顯示來源作為線索）──
+  if(commonItems.length){
+    const crate = Math.round(commonDone / commonItems.length * 100);
+    v.appendChild(el("div","ach-group-label",
+      `${commonDef.name || "共通道具"}　${crate}%（${commonDone} / ${commonItems.length}）`));
+    if(commonDef.intro) v.appendChild(el("div","comp-intro", commonDef.intro));
+    const cList = el("div","ach-list");
+    commonItems.forEach(ci => {
+      const def = ITEMS[ci.id] || {};
+      const got = carriedItems.has(ci.id);
+      const card = el("div","ach-card " + (got ? "unlocked" : "locked"));
+      card.appendChild(el("div","ach-icon", got ? (def.icon || "📦") : "❓"));
+      const body = el("div","ach-body");
+      // 出沒來源只列「已進過」的副本（未探索的來源不揭露）
+      const srcNames = (ci.from || []).filter(fid => visitedScenarios.has(fid)).map(fid =>
+        (COMPENDIUM[fid] && COMPENDIUM[fid].name) || (SCENARIOS[fid] && SCENARIOS[fid].title) || fid);
+      const srcLine = srcNames.length ? `<div class="comp-source">出沒：${srcNames.join(" · ")}</div>` : "";
+      body.innerHTML =
+        `<div class="ach-name">${got ? `<span ${rarNameClass(def.rarity)}>${def.name || ci.id}</span>` : "？？？"}</div>`+
+        `<div class="ach-hint">${got ? (ci.note || def.effect || "") : "未解鎖"}</div>`+
+        srcLine;
+      card.appendChild(body);
+      cList.appendChild(card);
+    });
+    v.appendChild(cList);
+  }
+
+  const acts = el("div","actions");
+  const back = mkAct("返回記憶狹間","←",null,null,"primary");
+  back.onclick = () => { screen = "hub"; render(); };
+  acts.appendChild(back);
+  v.appendChild(acts);
+  v.appendChild(footnote());
+}
+
 // 行動按鈕。opt 可帶 {loot} / {check} / {cost}
 function mkAct(text, mark, opt, costObj, extra){
   const b = el("button","act"+(extra?" "+extra:""));
@@ -1018,7 +1186,7 @@ function devRender(){
 
   // Header
   const hdr = devEl("div","dev-header");
-  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span><span style="font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.1em;margin-left:10px">ver. Test07</span>';
+  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span><span style="font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.1em;margin-left:10px">ver. Test08</span>';
   const closeB = devEl("button","dev-btn close","✕ 關閉");
   closeB.onclick = devToggle;
   hdr.appendChild(closeB);

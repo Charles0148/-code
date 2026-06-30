@@ -40,7 +40,7 @@ SCENARIOS["wreck_01"] = {
       { text:"拼盡全力往上游", danger:2, check:{type:"敏捷",dc:15,success:"out",fail:"dead"} },
       { text:"放棄掙扎，順著水流的間隙上浮", danger:3, reward:50, check:{type:"膽識",dc:17,success:"out",fail:"dead"} },
     ]},
-    out:{ scene:"你的頭破出海面，大口吸進帶鹹味的空氣。遠處有漁火在搖，有人聽到了聲音，正划船過來。", end:"cleared" },
-    dead:{ scene:"氧氣表歸零。海水溫柔得可怕，船艙的黑暗把你輕輕收了回去。", end:"dead" },
+    out:{ scene:"你的頭破出海面，大口吸進帶鹹味的空氣。遠處有漁火在搖，有人聽到了聲音，正划船過來。", end:"cleared", endingId:"wreck_escape" },
+    dead:{ scene:"氧氣表歸零。海水溫柔得可怕，船艙的黑暗把你輕輕收了回去。", end:"dead", endingId:"wreck_dead" },
   }
 };

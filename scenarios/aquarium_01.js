@@ -215,12 +215,14 @@ SCENARIOS["aquarium"] = {
     /* ===== 結局 ===== */
     node_cleared: {
       scene: "就在你回頭的剎那，一雙溫暖的手按上你的背，用力把你推出了大門。你跌坐在清晨的廣場上，回頭——水族館的玻璃門內，空無一物。陽光照下來，手臂上的血字，淡了。",
-      end: "cleared"
+      end: "cleared",
+      endingId: "aquarium_survive"
     },
 
     node_dead: {
       scene: "你回頭了。走道深處的黑暗轟然炸開，一條幽靈般的大白鯊挾著腥冷的水汽疾衝而出。你連尖叫都來不及。藍光，熄滅了。",
-      end: "dead"
+      end: "dead",
+      endingId: "aquarium_dead"
     },
 
   }
