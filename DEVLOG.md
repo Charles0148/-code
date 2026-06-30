@@ -29,6 +29,27 @@
 
 ---
 
+## 2026-06-30 — scenario_audit 新增檢查 3：節點成就 id 存在性；版本 Test07
+
+狀態：已 commit 並 push（commit aec6af2，版本 Test07）；工作目錄乾淨。正向 6 劇本全通過、反向注入不存在成就 id 被攔（退出碼 1）；/scenariocheck、/itemcheck 皆 exit 0。
+
+做了什麼：
+- tools/scenario_audit.js 新增「檢查 3：節點成就 id 存在性」：node.achievement 指向 ACHIEVEMENTS 未定義 id（成就幽靈）即計入退出碼
+- 載入 data/achievements.js：因其為 const ACHIEVEMENTS = {...} 宣告式（非 scenarios 的賦值式），以 eval 末尾附 global.ACHIEVEMENTS = ACHIEVEMENTS 取出，含 UTF-8 BOM 剝除 + try/catch 防護
+- 只檢查節點層 achievement（對齊引擎：index.html 僅 if(node.achievement) unlockAchievement），不檢查 choice 層
+- 頭部註解、逐劇本摘要、問題清單、退出碼說明同步更新
+- .claude/skills/scenariocheck/SKILL.md 描述與通過訊息加入「成就幽靈」
+
+技術決策：
+- 範圍只做 node.achievement id 存在性，不擴及 choice.achievement 偵測 ← 引擎根本不讀 choice.achievement，屬另一獨立判斷、另開工單；執法工具不自創契約沒禁的規則
+- achievements.js 用 eval 末尾指回 global 取出 ← 嚴格模式 direct eval 的 const 綁在 eval 私有作用域，須在同段 eval 內賦回 global 才取得到（與 scenarios 直接賦值 global.SCENARIOS 的載入方式不同）
+
+下一步：
+- 完成 2026-06-29 DEVLOG 標記的「節點成就 id 存在性檢查（需載 achievements.js）」待辦
+- 後續：endingId↔manifest 雙向稽核（見同日圖鑑工單）
+
+---
+
 ## 2026-06-29 — 新增劇本結構稽核 tools/scenario_audit.js（A2+B2）+ /scenariocheck
 
 狀態：已 commit 並 push 至 GitHub（版本 Test06）；正向 P1 + 反向 N1~N3 驗收全通過，工作目錄乾淨。
