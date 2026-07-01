@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-07-02 — scenario_audit 擴充：flags/vars 幽靈旗標偵測 + valueCheck 併入引用集；版本 Test11
+
+狀態：已實作，正/反向驗證全通過（/scenariocheck exit 0、注入幽靈旗標 exit 1、valueCheck 結局節點不再誤報孤兒）；/itemcheck exit 0。尚未 commit/push。
+
+背景：Test09 flags/vars 上線後留下兩個稽核缺口——① valueCheck 是 node 欄位、pass/fail 目標未被收進節點引用集，故只靠 valueCheck 導向的結局節點會被誤報孤兒；② requireFlag/valueCheck 讀取的 var 若從沒被 set/addValue/initFlags 寫入（幽靈旗標），條件恆對 undefined 求值卻無人攔。
+
+做了什麼（tools/scenario_audit.js）：
+- 檢查 1 擴充：node.valueCheck.pass / .fail 併入 addRef 引用集（與既有 next/success/fail/check.* 同級），修正 valueCheck-only 結局節點被誤判孤兒。
+- 新增檢查 5「flags/vars 幽靈旗標」：per-scenario 蒐集 writtenVars（initFlags keys + 各 choice 的 set/addValue keys）與 flagReads（requireFlag/valueCheck 的 var，含所在節點）；讀取卻不在 writtenVars 者計為幽靈旗標，計入退出碼（去重）。requireFlag 字串式與物件式、valueCheck 物件式皆涵蓋。
+- 頭部註解、逐劇本摘要、問題清單、退出碼說明同步；.claude/skills/scenariocheck/SKILL.md 描述與通過訊息加入「win 型別非法、幽靈旗標」。
+- Dev 版本號 Test10→Test11。
+
+技術決策：
+- 幽靈旗標定義為「讀但從未寫」而非「寫但從未讀」← 前者是真 bug（條件恆 undefined）；後者僅死碼，非結構錯誤，不計退出碼（避免噪音，對齊孤兒節點只給 ⓘ 的分寸）。
+- writtenVars 納入 initFlags keys ← 只在 initFlags 給初值、之後只讀不寫的常數變數是合法用法（如固定門檻旗標），不應誤報。
+- valueCheck 讀取視同「寫入需求來源」但 valueCheck 本身不算寫入 ← valueCheck 只比較不賦值，唯一寫入來源是 set/addValue/initFlags。
+
+下一步：
+- 接作家的 objective 型新劇本（限時完成任務）。
+- 擴充副本數量（目前 6，目標 10+）。
+
+---
+
 ## 2026-07-01 — win 型別第三型 objective + 標籤唯一真相來源 + 稽核執法；版本 Test10
 
 狀態：已實作，preview 無 console error、/scenariocheck 與 /itemcheck 皆 exit 0；尚未 commit/push（與 Test09 flags/vars 同一批未推）。

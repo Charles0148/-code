@@ -18,10 +18,13 @@
  *  檢查 4：win 型別合法性（逐劇本）
  *    scenario.win 不在允許集 {escape, survive, objective} → ❌ 錯誤（計入退出碼）
  *    （對齊引擎 WIN_LABELS 單一真相來源；防止標籤亂填顯示 undefined）
+ *  檢查 5：flags/vars 幽靈旗標（逐劇本）
+ *    requireFlag / valueCheck 讀取的 var，全劇本無任何 set/addValue/initFlags 寫入
+ *    → ❌ 錯誤（計入退出碼）。valueCheck.pass/fail 亦併入節點引用集（否則結局節點誤報孤兒）。
  *
  *  用法（於 repo 根目錄執行）：  node tools/scenario_audit.js
  *  可選參數：  node tools/scenario_audit.js <repoRoot>   （預設為當前工作目錄）
- *  退出碼：    0 = 乾淨    1 = 有需處理的問題（幽靈節點 + 機制誤用 + 成就幽靈 + win 非法）
+ *  退出碼：    0 = 乾淨    1 = 有需處理的問題（幽靈節點 + 機制誤用 + 成就幽靈 + win 非法 + 幽靈旗標）
  * ============================================================ */
 "use strict";
 const fs   = require("fs");
@@ -62,6 +65,7 @@ let ghostCount  = 0;          // 計入退出碼
 let misuseCount = 0;          // 計入退出碼
 let badAchCount = 0;          // 計入退出碼
 let badWinCount = 0;          // 計入退出碼
+let ghostFlagCount = 0;       // 計入退出碼
 
 for(const [sid, scn] of Object.entries(SCENARIOS)){
   const nodes = scn.nodes || {};
@@ -83,6 +87,17 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
   const misuse = [];
   /* ---- 檢查 3：節點成就 id 存在性（逐節點）---- */
   const badAch = [];
+  /* ---- 檢查 5：flags/vars 幽靈旗標（讀但從未寫）----
+   * writtenVars：initFlags 初始化 + 任一 choice 的 set / addValue 寫入的 key
+   * flagReads：requireFlag / valueCheck 讀取的 var（含所在節點，供報錯定位）
+   * 比對後，讀取卻從未寫入的 var ＝ 幽靈旗標（條件永遠對 undefined 求值）。 */
+  const writtenVars = new Set(Object.keys(scn.initFlags || {}));
+  const flagReads = [];   // { nid, varName, from }
+  const readVar = (cond, nid, from) => {
+    if(cond == null) return;
+    if(typeof cond === "string") flagReads.push({ nid, varName: cond, from });
+    else if(typeof cond === "object" && typeof cond.var === "string") flagReads.push({ nid, varName: cond.var, from });
+  };
 
   for(const [nid, node] of Object.entries(nodes)){
     // ── 檢查 3：node.achievement 指向的成就 id 必須已定義 ──
@@ -90,7 +105,20 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
       badAch.push(`節點 ${nid}：achievement="${node.achievement}" 指向不存在的成就 id（ACHIEVEMENTS 未定義）`);
     }
 
+    // ── 檢查 1 + 5：node.valueCheck 的路由目標與讀取變數 ──
+    if(node.valueCheck && typeof node.valueCheck === "object"){
+      addRef(node.valueCheck.pass);   // 確定性分支目標併入引用集（否則結局節點被誤報孤兒）
+      addRef(node.valueCheck.fail);
+      readVar(node.valueCheck, nid, "valueCheck");
+    }
+
     for(const c of (node.choices || [])){
+      // ── 檢查 5：set / addValue 寫入的變數 ──
+      if(c.set && typeof c.set === "object")      for(const k of Object.keys(c.set))      writtenVars.add(k);
+      if(c.addValue && typeof c.addValue === "object") for(const k of Object.keys(c.addValue)) writtenVars.add(k);
+      // ── 檢查 5：requireFlag 讀取的變數 ──
+      if("requireFlag" in c) readVar(c.requireFlag, nid, "requireFlag");
+
       // ── 檢查 1：路由目標 ──
       addRef(c.next);
       addRef(c.success);              // accumulate winMode 的 finalRoll 用
@@ -126,13 +154,25 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
   const ghosts  = [...referenced].filter(id => !defined.has(id));
   const orphans = [...defined].filter(id => !referenced.has(id) && id !== "start");
 
-  ghostCount  += ghosts.length;
-  misuseCount += misuse.length;
-  badAchCount += badAch.length;
-  badWinCount += badWin.length;
+  /* ---- 檢查 5：幽靈旗標（讀但從未寫，去重）---- */
+  const ghostFlags = [];
+  const seenGhost = new Set();
+  for(const r of flagReads){
+    if(writtenVars.has(r.varName)) continue;
+    const key = `${r.varName}@${r.nid}:${r.from}`;
+    if(seenGhost.has(key)) continue;
+    seenGhost.add(key);
+    ghostFlags.push(`節點 ${r.nid}：${r.from} 讀取 var="${r.varName}"，但全劇本無任何 set/addValue/initFlags 寫入它（幽靈旗標，條件恆對 undefined 求值）`);
+  }
+
+  ghostCount     += ghosts.length;
+  misuseCount    += misuse.length;
+  badAchCount    += badAch.length;
+  badWinCount    += badWin.length;
+  ghostFlagCount += ghostFlags.length;
 
   scenarioReports.push({
-    sid, title: scn.title || "(無標題)",
+    sid, title: scn.title || "(無標題)", ghostFlags,
     nodeCount: defined.size, ghosts, orphans, misuse, badAch, badWin,
   });
 }
@@ -151,6 +191,8 @@ for(const r of scenarioReports){
   r.badAch.forEach(a => console.log(`      - ${a}`));
   console.log(`   ${r.badWin.length ? "❌" : "✅"} win 型別合法性：${r.badWin.length ? "" : "無"}`);
   r.badWin.forEach(w => console.log(`      - ${w}`));
+  console.log(`   ${r.ghostFlags.length ? "❌" : "✅"} 幽靈旗標（requireFlag/valueCheck 讀但從未寫）：${r.ghostFlags.length ? "" : "無"}`);
+  r.ghostFlags.forEach(g => console.log(`      - ${g}`));
   console.log(`   ⓘ 孤兒節點（已定義無引用；turnLimit 強制結束的 end 節點屬正常）：${r.orphans.length ? r.orphans.join(", ") : "無"}`);
 }
 
@@ -168,10 +210,12 @@ const allGhosts = scenarioReports.flatMap(r => r.ghosts.map(g => `${r.sid}：${g
 const allMisuse = scenarioReports.flatMap(r => r.misuse.map(m => `${r.sid} / ${m}`));
 const allBadAch = scenarioReports.flatMap(r => r.badAch.map(a => `${r.sid} / ${a}`));
 const allBadWin = scenarioReports.flatMap(r => r.badWin.map(w => `${r.sid} / ${w}`));
+const allGhostFlags = scenarioReports.flatMap(r => r.ghostFlags.map(g => `${r.sid} / ${g}`));
 report("幽靈節點（被引用卻未定義）", allGhosts);
 report("契約未實作機制誤用", allMisuse);
 report("成就幽靈（node.achievement 指向未定義 id）", allBadAch);
 report("win 型別非法（不在 {escape, survive, objective}）", allBadWin);
+report("幽靈旗標（requireFlag/valueCheck 讀但從未寫）", allGhostFlags);
 
 const allOrphans = scenarioReports.flatMap(r => r.orphans.map(o => `${r.sid}：${o}`));
 console.log(`\nⓘ 孤兒節點（不計入退出碼；僅靠 turnLimit 到達的 end 節點屬正常）：${allOrphans.length ? allOrphans.join(", ") : "無"}`);
