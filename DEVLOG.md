@@ -2,6 +2,61 @@
 
 ---
 
+## 2026-07-01 — win 型別第三型 objective + 標籤唯一真相來源 + 稽核執法；版本 Test10
+
+狀態：已實作，preview 無 console error、/scenariocheck 與 /itemcheck 皆 exit 0；尚未 commit/push（與 Test09 flags/vars 同一批未推）。
+
+背景：作家有「限時完成一連串日常任務」的新劇本型別，非 escape 也非 survive。掃描確認 `win` 只在 `choose()` 的 turnLimit fallback（[index.html] `win==="survive"?cleared:dead`）與顯示標籤兩處被讀取，且標籤 map 已預留 `objective` key。決定把第三型正式化，並把標籤治理成「單一真相 + 機械稽核」以防日後亂填。
+
+做了什麼：
+- index.html 抽出 `WIN_LABELS` 常數（escape/survive/objective 三型）為標籤唯一真相來源，放在頂部常數區；render 改查此表並加防禦退回（未知值顯示原字串而非 undefined），取代原本內嵌的 map 字面量。
+- CLAUDE.md §3 新增「win 型別規則」表：三型的標籤、語意、turnLimit fallback 結局；標明 win 不參與 node.end 實際勝負、objective 勝負建議用 valueCheck+明確 end 節點決定；列出新增第四型需同步的四處。
+- tools/scenario_audit.js 新增「檢查 4：win 型別合法性」：scenario.win 不在 {escape,survive,objective} 即 ❌ 計入退出碼（WIN_ALLOWED 須與 WIN_LABELS keys 同步）；.claude/skills 之 /scenariocheck 沿用。
+- Dev 版本號 Test09→Test10。
+- CLAUDE.md §5 flags/vars 段補上比較運算子型別規則：字串只用 ==/!=（值比較，node 實跑驗證）、> < >= <= 只給數字（字串會走字典序）、== 為寬鬆等於故 threshold 型別須與變數一致、未 set 變數＝undefined 可作預設走 fail。
+
+技術決策：
+- objective 的 turnLimit fallback 沿用 escape 語意（超時＝dead＝沒在時限內完成），故 choose() 第 446 行無須改動，只擴標籤＋稽核 ← 「在時限內完成」的自然反面是「超時＝失敗」；若未來要「超時算贏」的變體，才需動 fallback（已在契約標明四處同步點）。
+- 標籤治理選「單一常數 + 稽核執法」而非只寫文件規則 ← 專案既有哲學是機械判斷由 code；純文件規則擋不住亂填，稽核才是真防線。
+- render 未知值退回原字串而非丟錯 ← 稽核已在 dev-time 攔非法值，runtime 只需不顯示 undefined 的防禦性退路。
+
+下一步：
+- /scenariocheck 擴充（承 Test09）：flags/vars 幽靈旗標偵測、valueCheck.pass/fail 併入節點引用集。
+- 接作家的 objective 型新劇本。
+
+---
+
+## 2026-07-01 — 引擎新增 flags/vars 通用原語（選擇歷史閘門 + 確定性數值分支）；版本 Test09
+
+狀態：已實作並 preview 實跑驗收（3 條路徑全通過 + 既有副本回歸無干擾）；尚未 commit/push。
+
+背景：作家劇本需求有兩類現有機制做不到——① 選項出現/結局取決於「先前選了哪個」（非持有道具）；② 選項對應「花費時間」累加，與 deadline 做**確定性**比較後分岔（非擲骰、非 accumulate 的機率判定）。讀引擎程式碼確認 `require` 只查背包、`check` 是 d20 機率、`accumulate` 最終是擲骰，皆無法乾淨表達。決定加一個通用 flags/vars 原語一次解掉兩者。
+
+做了什麼（全在 index.html，加法式、向後相容）：
+- `runState._flags` 揮發狀態袋，`enterTier` 以 `scenario.initFlags` 初始化（不進 localStorage）。
+- 新增三個 helper：`applyChoiceEffects`（套用 `choice.set` / `choice.addValue`）、`evalFlagCond`（字串＝存在真值；`{var,op,threshold}` 六種比較）、`resolveValueCheck`（進節點時依 `node.valueCheck` 確定性重導 pass/fail，鏈式 + 50 層迴圈防護）。
+- `choose()` 接線：一進來就 `applyChoiceEffects`（在算分支前，valueCheck 才看得到更新值）；算出 nextId 後 `resolveValueCheck`（在 steer/turnLimit 之前）。
+- 選項可見性過濾加 `requireFlag`（與既有道具 `require` 為 AND）。
+- CLAUDE.md §5 新增「flags/vars 通用原語」段、require 表補註記；Dev 版本號 Test08→Test09。
+
+驗收（preview_eval 三路徑）：
+- 抄捷徑 time=5、route=short → 暗門選項可見、valueCheck ≤10 pass → win_ontime(cleared)。
+- 繞遠路 time=15、route=long → 暗門隱藏、valueCheck >10 fail → win_late(dead)。
+- 抄捷徑+徘徊 time=15 → 證明 addValue 跨節點/自迴圈累加、valueCheck 讀更新值 → win_late。
+- 回歸：hospital_01 無 flag 欄位，start→window 正常、`runState._flags` 保持 `{}` 無干擾。
+- 測試副本 `_flagtest_01` 驗收後已刪除（避免污染隨機抽選池），index.html script 標籤一併移除。
+
+技術決策：
+- 選通用原語而非 winMode hook ← 這是任何普通副本都會用到的跨節點條件/數值能力，屬引擎通用原語（如同 require/check），不是單一副本專屬邏輯，故進核心而非 hook；仍守 §6（不寫任何副本專屬 if/else）。
+- `valueCheck` 放在 steer/turnLimit 之前 ← 它是正常路由的一部分；若重導到 end 節點，後續 steer/turnLimit 的 `!isEnd` 判斷自然略過。
+- 明令禁止用 internal 道具濫充旗標 ← 語意骯髒且污染 /itemcheck；既然有乾淨原語就不留後門。
+
+下一步：
+- /scenariocheck 擴充：`requireFlag`/`valueCheck` 指向的 var 是否有某處 `set`/`addValue`（幽靈旗標）；`valueCheck.pass/fail` 併入節點引用集（否則被誤報孤兒）。
+- 擴充副本數量（目前 6，目標 10+）。
+
+---
+
 ## 2026-06-30 — 副本圖鑑系統（持久層 + endingId + 帶出記錄 + manifest + UI + 共通道具區）；版本 Test08
 
 狀態：已 commit 並 push（版本 Test08）。/scenariocheck、/itemcheck 皆 exit 0；preview 實跑驗收全通過。

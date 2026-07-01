@@ -56,6 +56,18 @@
 const TIER2_COST = 50;          // 進入 Tier 2 需要的點數
 const CARRY_ESCAPE_CHANCE = 0.10; // 失敗時，carry 道具有 10% 機率保住
 
+// ── win 型別標籤（唯一真相來源）──────────────────────────────────────────
+// scenario.win 只能是這三個 key 之一；render 一律查此表，未知值不顯示 undefined。
+// turnLimit 到達時的預設結局（見 choose()）：survive → cleared（撐到時間＝贏）；
+//   escape / objective → dead（沒能在時限內逃出／完成＝輸）。
+// 新增第四型時，必須同時更新：① 本表 ② 若時間到語意不同則改 choose() 的 turnLimit fallback
+//   ③ CLAUDE.md §3 win 型別表 ④ tools/scenario_audit.js 檢查 4 的允許集。
+const WIN_LABELS = {
+  escape:    "ESCAPE 逃出",
+  survive:   "SURVIVE 生存",
+  objective: "OBJECTIVE 任務",
+};
+
 // SHOP_ITEMS 已移至 data/shop_items.js
 
 // ACHIEVEMENTS 已移至 data/achievements.js
@@ -332,6 +344,7 @@ function enterTier(tier){
   if(!visitedScenarios.has(id)){ visitedScenarios.add(id); saveState(); } // 圖鑑：記錄曾進入此副本
   runLoot = []; pendingLoot = []; pendingCheck = null; pendingReward = 0;
   runState = {};
+  runState._flags = { ...(curScn.initFlags || {}) }; // 通用 flags/vars 原語：單局旗標/數值袋（揮發，不進存檔）
   const _hooks = WINMODE_HOOKS[curScn.winMode];
   if(_hooks?.onEnter) _hooks.onEnter(runState);
   screen = "scenario"; showingBag = false;
@@ -364,6 +377,43 @@ function processGrant(node){
   }
 }
 
+/* ── 通用 flags/vars 原語（跨節點旗標／數值，供條件閘門與確定性分支使用）──
+   choice.set:{k:v}      設旗標／變數
+   choice.addValue:{k:n} 數值累加（Q2 時間預算等）
+   choice.requireFlag    選項可見性條件（字串＝存在真值；物件＝{var,op,threshold}）
+   node.valueCheck:{var,op,threshold,pass,fail} 進節點時確定性重導（非擲骰）
+   全部選填、加法式；無此欄位的既有劇本行為不變。runState._flags 為揮發單局狀態，不進 localStorage。 */
+function applyChoiceEffects(choice){
+  if(!runState._flags) runState._flags = {};
+  if(choice.set){ for(const k in choice.set) runState._flags[k] = choice.set[k]; }
+  if(choice.addValue){ for(const k in choice.addValue) runState._flags[k] = (runState._flags[k] || 0) + choice.addValue[k]; }
+}
+function evalFlagCond(cond){
+  if(!runState._flags) runState._flags = {};
+  if(typeof cond === "string") return !!runState._flags[cond]; // 簡寫：旗標存在且為真
+  const v = runState._flags[cond.var];
+  const t = cond.threshold;
+  switch(cond.op){
+    case ">=": return v >= t;
+    case "<=": return v <= t;
+    case ">":  return v >  t;
+    case "<":  return v <  t;
+    case "==": return v == t;
+    case "!=": return v != t;
+    default:   return false;
+  }
+}
+// 目標節點若有 valueCheck，確定性重導向 pass/fail（可鏈式，含迴圈防護）
+function resolveValueCheck(nextId, _guard){
+  _guard = _guard || 0;
+  const node = curScn.nodes[nextId];
+  if(node && node.valueCheck && _guard < 50){
+    const vc = node.valueCheck;
+    return resolveValueCheck(evalFlagCond(vc) ? vc.pass : vc.fail, _guard + 1);
+  }
+  return nextId;
+}
+
 function choose(choice){
   // 通過 climax 後停止計回合；climax 當回合本身仍計入
   if(!runState._pastClimax) turn += 1;
@@ -372,6 +422,8 @@ function choose(choice){
   const hooks = WINMODE_HOOKS[curScn.winMode];
   const ctx = { inventory, runLoot, scenario:curScn, turn };
   let nextId;
+
+  applyChoiceEffects(choice); // 通用 flags/vars：套用 set / addValue（在算分支之前，valueCheck 才看得到更新後的值）
 
   if(choice.check){
     const b = bonusFor(choice.check.type);
@@ -388,6 +440,8 @@ function choose(choice){
     nextId = hookResult?.overrideNextId ?? choice.next;
     if(hookResult?.endKind){ curNodeId = nextId; resolveEnd(hookResult.endKind); render(true); return; }
   }
+
+  nextId = resolveValueCheck(nextId); // 通用 valueCheck：目標節點若有確定性數值門檻，重導 pass/fail（在 steer/turnLimit 之前）
 
   if(choice.loot) pendingLoot = rollDrops(curScn.pool);
 
@@ -842,7 +896,7 @@ function renderScenario(v, animate){
   const node = curScn.nodes[curNodeId];
 
   const obj = el("div","objective");
-  const winLabel = {survive:"SURVIVE 生存",escape:"ESCAPE 逃出",objective:"OBJECTIVE 任務"}[curScn.win];
+  const winLabel = WIN_LABELS[curScn.win] || curScn.win || ""; // 唯一真相來源；未知值退回原字串而非 undefined
   obj.appendChild(el("span","obj-text", curScn.objective + '<span class="tag">'+winLabel+'</span>'));
   obj.appendChild(el("span","turn", '回合 <b>'+turn+'</b> / '+(curScn.turnLimit === 99 ? '??' : curScn.turnLimit)));
   v.appendChild(obj);
@@ -865,6 +919,7 @@ function renderScenario(v, animate){
 
   const acts = el("div","actions");
   const visible = node.choices.filter(c => {
+    if(c.requireFlag && !evalFlagCond(c.requireFlag)) return false; // 通用 flags/vars：選項可見性條件
     if(!c.require) return true;
     if(Array.isArray(c.require)) return c.require.every(r => hasItem(r));
     return hasItem(c.require);
@@ -1186,7 +1241,7 @@ function devRender(){
 
   // Header
   const hdr = devEl("div","dev-header");
-  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span><span style="font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.1em;margin-left:10px">ver. Test08</span>';
+  hdr.innerHTML = '<span>開發者面板 <span style="color:var(--ink-dim);font-size:10px;letter-spacing:.05em">按 ` 開關</span></span><span style="font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.1em;margin-left:10px">ver. Test10</span>';
   const closeB = devEl("button","dev-btn close","✕ 關閉");
   closeB.onclick = devToggle;
   hdr.appendChild(closeB);

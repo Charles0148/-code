@@ -15,10 +15,13 @@
  *  檢查 3：節點成就 id 存在性（逐節點）
  *    node.achievement 指向 ACHIEVEMENTS 未定義的 id（成就幽靈）→ ❌ 錯誤（計入退出碼）
  *    （只檢查節點層，對齊引擎：index.html 僅 if(node.achievement) unlockAchievement(...)）
+ *  檢查 4：win 型別合法性（逐劇本）
+ *    scenario.win 不在允許集 {escape, survive, objective} → ❌ 錯誤（計入退出碼）
+ *    （對齊引擎 WIN_LABELS 單一真相來源；防止標籤亂填顯示 undefined）
  *
  *  用法（於 repo 根目錄執行）：  node tools/scenario_audit.js
  *  可選參數：  node tools/scenario_audit.js <repoRoot>   （預設為當前工作目錄）
- *  退出碼：    0 = 乾淨    1 = 有需處理的問題（由幽靈節點 + 機制誤用 + 成就幽靈決定）
+ *  退出碼：    0 = 乾淨    1 = 有需處理的問題（幽靈節點 + 機制誤用 + 成就幽靈 + win 非法）
  * ============================================================ */
 "use strict";
 const fs   = require("fs");
@@ -26,6 +29,9 @@ const path = require("path");
 
 const ROOT    = process.argv[2] || process.cwd();
 const SCN_DIR = path.join(ROOT, "scenarios");
+
+// win 允許集：須與 index.html 的 WIN_LABELS keys 一致（新增型別時兩處同步）
+const WIN_ALLOWED = new Set(["escape", "survive", "objective"]);
 
 /* ---- 載入 SCENARIOS（沿用 item_audit.js 的方式）---- */
 global.SCENARIOS = {};
@@ -55,10 +61,16 @@ const scenarioReports = [];   // { sid, title, nodeCount, ghosts[], orphans[], m
 let ghostCount  = 0;          // 計入退出碼
 let misuseCount = 0;          // 計入退出碼
 let badAchCount = 0;          // 計入退出碼
+let badWinCount = 0;          // 計入退出碼
 
 for(const [sid, scn] of Object.entries(SCENARIOS)){
   const nodes = scn.nodes || {};
   const defined = new Set(Object.keys(nodes));
+
+  /* ---- 檢查 4：win 型別合法性 ---- */
+  const badWin = (!("win" in scn) || !WIN_ALLOWED.has(scn.win))
+    ? [`win=${JSON.stringify(scn.win)} 不在允許集 {escape, survive, objective}`]
+    : [];
 
   /* ---- 檢查 1：蒐集引用集（僅字串型目標）---- */
   const referenced = new Set();
@@ -117,10 +129,11 @@ for(const [sid, scn] of Object.entries(SCENARIOS)){
   ghostCount  += ghosts.length;
   misuseCount += misuse.length;
   badAchCount += badAch.length;
+  badWinCount += badWin.length;
 
   scenarioReports.push({
     sid, title: scn.title || "(無標題)",
-    nodeCount: defined.size, ghosts, orphans, misuse, badAch,
+    nodeCount: defined.size, ghosts, orphans, misuse, badAch, badWin,
   });
 }
 
@@ -136,6 +149,8 @@ for(const r of scenarioReports){
   r.misuse.forEach(m => console.log(`      - ${m}`));
   console.log(`   ${r.badAch.length ? "❌" : "✅"} 成就幽靈（node.achievement 指向未定義 id）：${r.badAch.length ? "" : "無"}`);
   r.badAch.forEach(a => console.log(`      - ${a}`));
+  console.log(`   ${r.badWin.length ? "❌" : "✅"} win 型別合法性：${r.badWin.length ? "" : "無"}`);
+  r.badWin.forEach(w => console.log(`      - ${w}`));
   console.log(`   ⓘ 孤兒節點（已定義無引用；turnLimit 強制結束的 end 節點屬正常）：${r.orphans.length ? r.orphans.join(", ") : "無"}`);
 }
 
@@ -152,9 +167,11 @@ const report = (label, arr, fmt = x => x) => {
 const allGhosts = scenarioReports.flatMap(r => r.ghosts.map(g => `${r.sid}：${g}`));
 const allMisuse = scenarioReports.flatMap(r => r.misuse.map(m => `${r.sid} / ${m}`));
 const allBadAch = scenarioReports.flatMap(r => r.badAch.map(a => `${r.sid} / ${a}`));
+const allBadWin = scenarioReports.flatMap(r => r.badWin.map(w => `${r.sid} / ${w}`));
 report("幽靈節點（被引用卻未定義）", allGhosts);
 report("契約未實作機制誤用", allMisuse);
 report("成就幽靈（node.achievement 指向未定義 id）", allBadAch);
+report("win 型別非法（不在 {escape, survive, objective}）", allBadWin);
 
 const allOrphans = scenarioReports.flatMap(r => r.orphans.map(o => `${r.sid}：${o}`));
 console.log(`\nⓘ 孤兒節點（不計入退出碼；僅靠 turnLimit 到達的 end 節點屬正常）：${allOrphans.length ? allOrphans.join(", ") : "無"}`);

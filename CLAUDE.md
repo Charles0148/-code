@@ -74,7 +74,7 @@
 SCENARIOS["id"] = {
   title, theme, tier,           // tier: 1 或 2
   objective,                    // 任務說明字串
-  win: "escape"|"survive",
+  win: "escape"|"survive"|"objective",  // 型別標籤（見下方「win 型別規則」）；只能填這三種
   turnLimit: 15,                // 強制結束回合數
   steerAt: 10,                  // 第幾回合起導向高潮節點（特殊劇本可用 skipSteer 略過）
   climaxNode: "node_id",        // 高潮節點 id
@@ -87,6 +87,20 @@ SCENARIOS["id"] = {
   nodes: { ... }
 };
 ```
+
+### win 型別規則（標籤唯一真相來源，禁止亂填）
+
+`win` 只能填以下三種值之一。標籤集中定義於 `index.html` 的 `WIN_LABELS` 常數，畫面一律查此表；**新增劇本一律從這三種挑一個，不得自創新字串**（`/scenariocheck` 檢查 4 會攔）。
+
+| win 值 | 顯示標籤 | 語意 | turnLimit 到達時的預設結局 |
+|--------|----------|------|-----------------------------|
+| `"escape"` | ESCAPE 逃出 | 在時限內逃出 | **dead**（沒能逃出＝輸） |
+| `"survive"` | SURVIVE 生存 | 撐過時限 | **cleared**（撐到時間＝贏） |
+| `"objective"` | OBJECTIVE 任務 | 在時限內完成一連串任務／達成目標 | **dead**（沒能在時限內完成＝輸） |
+
+- 唯一被引擎邏輯讀取的地方是 `choose()` 的 turnLimit fallback（`win==="survive"` → cleared，其餘 → dead）與上面的顯示標籤；`win` **不參與**節點 `end` 的實際勝負判定（那由 `node.end:"cleared"/"dead"` 直接決定）。
+- `objective` 型的實際勝負，建議用 **flags/vars 的 `valueCheck` + 明確 `end` 節點**（見 §5）在自己的節點決定，turnLimit fallback 只當「拖到超時＝失敗」的安全網。
+- ⚠️ 要新增第四型（例如「時間到算贏的 objective 變體」）必須四處同步：① `WIN_LABELS` ② 若時間到語意不同則改 `choose()` 的 turnLimit fallback ③ 本表 ④ `tools/scenario_audit.js` 的 `WIN_ALLOWED`。缺一處就會標籤或稽核不一致。
 
 ### choice 形式（普通劇本）
 ```js
@@ -201,7 +215,8 @@ SCENARIOS["id"] = {
 | `require: { not: "item_id" }` | 缺少該道具才顯示（反向） | ❌ 未實作 |
 | `require: { any: ["a","b"] }` | 持有任一即顯示（OR） | ❌ 未實作 |
 
-> 反向與 OR 閘門未實作，等到有副本真正需要才加。
+> 道具反向與 OR 閘門未實作，等到有副本真正需要才加。
+> ⚠️ 注意：`require` 只查「背包持有道具」。若要依「先前選擇／數值」控制選項可見性，用下方的 **flags/vars 原語**（`requireFlag`），不要用道具濫充旗標。
 
 ### requireMemory 欄位
 
@@ -260,6 +275,44 @@ node_end_true: {
 - `visitedScenarios` 於 `enterTier`（唯一進入點，含 DEV 強制）記錄。
 - 分母由 `data/compendium.js` 宣告：`COMPENDIUM`（按副本：`endings` / `items` / `achievements`）＋ `COMPENDIUM_COMMON`（共通道具，含專屬欄位 `from` 出沒來源）。`items` **只列 carry:true 且非 internal** 道具。
 - 顯示門檻：副本須在 `visitedScenarios` 才出現於圖鑑；共通道具逐顆比對 `from`∩`visitedScenarios` 才揭露（只玩不掉共通道具的副本不會揭露任何共通道具）；未解鎖格遮為「？？？」；共通道具出沒行只列已進過的來源。
+
+---
+
+### flags/vars 通用原語（跨節點旗標與數值）
+
+用於「依玩家先前的**選擇**（而非持有道具）控制選項可見性或分支」，以及「累加一個數值、和門檻做**確定性**比較後分支（無擲骰）」。是通用原語，任何普通副本直接用，不需 winMode。
+
+- **狀態袋**：`runState._flags`（揮發、**不進 localStorage**）。進副本時以 `scenario.initFlags`（選填）初始化，否則為空物件。
+- **寫入（choice 欄位）**：
+  - `set: { key: value }` — 設旗標／變數（值可為字串、數字、布林）。
+  - `addValue: { key: n }` — 數值累加（同 key 累加，未初始化視為 0）。
+  - 時機：`choose()` 一進來就套用（在算分支之前），故同一選項的 `addValue` 會被同一步的 `valueCheck` 看見。
+- **讀取——選項可見性（choice 欄位）**：
+  - `requireFlag: "key"` — 該旗標存在且為真值才顯示。
+  - `requireFlag: { var, op, threshold }` — 比較式才顯示。`op` ∈ `>=` `<=` `>` `<` `==` `!=`。
+  - 與既有 `require`（道具）**同時存在時為 AND**（兩者都過才顯示）。
+- **讀取——確定性分支（node 欄位）**：
+  - `valueCheck: { var, op, threshold, pass, fail }` — 引擎「即將進入」該節點時求值，確定性重導到 `pass` 或 `fail` 節點（**不擲骰**）。玩家不會停在此節點，故它是純路由節點（`scene`/`choices` 可留空）。
+  - 可鏈式（pass/fail 再指向另一個 valueCheck 節點），含 50 層迴圈防護。
+  - 執行順序：在 `steerAt` 高潮導引與 `turnLimit` 強制結束**之前**。
+- **比較運算子的型別規則**（`requireFlag` 與 `valueCheck` 共用 `evalFlagCond`，直接套 JS 運算子、不做型別轉換）：
+  - **字串變數只用 `==` / `!=`**：兩邊都是字串時為值比較，正確可靠（如 `set:{route:"short"}` 配 `op:"==", threshold:"short"`）。
+  - **`> < >= <=` 只給數字**：對字串會做**字典序**比較（非報錯但通常非本意），字串旗標勿用。
+  - `==` 為**寬鬆**等於：threshold 型別要與變數一致（字串變數配字串、`addValue` 出來的數字變數配數字），勿拿數字變數跟字串 `"5"` 比（會型別轉換意外相等）。
+  - **未 set 過的變數**＝`undefined`：`== 任何字串` 為 false（走 fail）、`!=` 為 true，可作為「沒選過就走預設」的自然預設。
+- **多門檻／多結局**：用多個 `valueCheck` 節點串接即可（例：先比 `<=10` 分兩路，pass 支再比 `<=5`）。
+- **相容性**：全部選填、加法式；無這些欄位的既有副本行為完全不變（`runState._flags` 保持 `{}`，`evalFlagCond` 不被呼叫）。
+- **與 `require` 的分工**：`require` 只查「背包持有道具」；「選了什麼／累積多少」一律走 flags/vars，**禁止**用 internal 道具濫充旗標（語意骯髒、污染道具稽核）。
+- **與 accumulate 的分工**：`accumulate` 是「累積數值 → **機率**判定」（最終擲骰）；flags/vars 的 `valueCheck` 是「累積數值 → **確定性**比較」（不擲骰）。兩者互不取代。
+
+```js
+// choice：抄捷徑，記下選擇並累加時間
+{ text:"抄捷徑（+5 分鐘）", set:{ route:"short" }, addValue:{ time:5 }, next:"junction" }
+// choice：只有抄過捷徑的人看得到
+{ text:"【暗門】", requireFlag:{ var:"route", op:"==", threshold:"short" }, next:"arrival" }
+// node：純路由，依 time 確定性分岔到不同結局
+arrival: { valueCheck:{ var:"time", op:"<=", threshold:10, pass:"win_ontime", fail:"win_late" }, choices:[] }
+```
 
 ---
 
